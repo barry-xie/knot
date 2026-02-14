@@ -5,30 +5,30 @@ export default function Home() {
     <div className="min-h-screen bg-[#fffbf9] font-sans">
       {/* Nav — minimal bar, readable on hero and about */}
       <header
-        className="fixed left-0 right-0 top-0 z-20 flex items-center justify-between border-b border-[#537aad]/10 px-5 py-4 backdrop-blur-md sm:px-8 md:px-12 lg:px-16"
-        style={{ backgroundColor: "color-mix(in srgb, #fffbf9 97%, #537aad 3%)" }}
+        className="fixed left-4 right-4 top-4 z-20 flex items-center justify-between rounded-2xl px-4 py-3 backdrop-blur-md sm:left-6 sm:right-6 sm:px-6 md:left-8 md:right-8 md:px-8 lg:left-10 lg:right-10 lg:px-10"
+        style={{ backgroundColor: "color-mix(in srgb, #fffbf9 97%, #537aad 3%)", boxShadow: "0 4px 24px rgba(83,122,173,0.15), 0 2px 8px rgba(0,0,0,0.06)" }}
       >
         <Link
           href="/"
-          className="font-serif text-[1.05rem] tracking-tight text-[#537aad] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#537aad]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fffbf9]"
+          className="font-serif text-[0.9375rem] tracking-tight text-[#537aad] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#537aad]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fffbf9]"
         >
           knot.
         </Link>
-        <nav className="flex items-center gap-6 text-[0.9375rem] tracking-wide text-[#537aad]">
+        <nav className="flex items-center gap-4 text-[0.8125rem] lowercase tracking-wide text-[#537aad]">
           <a
             href="#about"
             className="transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#537aad]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fffbf9]"
           >
-            About
+            about
           </a>
           <Link
-            href="/dashboard"
-            className="rounded-full px-4 py-2 font-medium text-[#fffbf9] transition-all hover:opacity-95 hover:shadow-[0_4px_20px_rgba(83,122,173,0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#537aad] focus-visible:ring-offset-2 focus-visible:ring-offset-[#fffbf9]"
+            href="/onboard"
+            className="rounded-full px-3 py-1.5 text-[0.8125rem] font-medium text-[#fffbf9] transition-all hover:opacity-95 hover:shadow-[0_4px_20px_rgba(83,122,173,0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#537aad] focus-visible:ring-offset-2 focus-visible:ring-offset-[#fffbf9]"
             style={{
               background: "linear-gradient(135deg, #537aad 0%, #6b8fc4 100%)",
             }}
           >
-            Get started
+            get started
           </Link>
         </nav>
       </header>
@@ -53,67 +53,72 @@ export default function Home() {
               "linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, transparent 40%, transparent 60%, rgba(255,251,249,0.15) 85%, rgba(255,251,249,0.4) 100%)",
           }}
         />
-        <div className="relative z-10 px-5 pb-[clamp(2rem,8vw,4.5rem)] pt-20 sm:px-8 sm:pb-[clamp(2.5rem,10vw,5rem)] md:px-12 md:pt-24 lg:px-16">
-          <div className="max-w-[26rem] sm:max-w-md">
+        {/* Large decorative knot. bottom right */}
+        <span
+          className="pointer-events-none absolute bottom-6 right-6 z-[2] font-serif font-normal tracking-tight text-[#fffbf9] sm:bottom-8 sm:right-8 md:bottom-10 md:right-10"
+          style={{
+            fontSize: "clamp(4rem, 15vw, 10rem)",
+            lineHeight: 1,
+            letterSpacing: "-0.03em",
+            opacity: 0.2,
+          }}
+          aria-hidden
+        >
+          knot.
+        </span>
+        <div className="relative z-[50] flex flex-col justify-end px-4 pb-10 pt-16 sm:px-6 sm:pb-12 sm:pt-20 md:px-8 md:pb-14 md:pt-24 lg:px-10">
+          <div className="max-w-2xl">
             <h1
-              className="font-serif font-normal tracking-tight"
+              className="whitespace-normal font-serif font-normal tracking-tight sm:whitespace-nowrap"
               style={{
-                fontSize: "clamp(2rem, 5vw + 1.25rem, 3.75rem)",
+                fontSize: "clamp(1.75rem, 4.5vw + 1.1rem, 2.875rem)",
                 letterSpacing: "-0.02em",
-                lineHeight: 1.1,
+                lineHeight: 1.25,
+                paddingBottom: "0.05em",
                 background: "linear-gradient(135deg, #fffbf9 0%, #fffbf9 70%, rgba(83,122,173,0.4) 100%)",
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
                 backgroundClip: "text",
               }}
             >
-              knot.
+              Unravel your <span className="italic">learning</span>.
             </h1>
-            <p
-              className="mt-4 font-sans text-[#fffbf9]/90"
-              style={{
-                fontSize: "clamp(0.9375rem, 1.25vw + 0.6rem, 1.125rem)",
-                lineHeight: 1.55,
-                maxWidth: "28ch",
-              }}
-            >
-              Unravel the knots in your learning.
+            <p className="mt-2 font-sans text-[0.9375rem] font-medium lowercase tracking-wide text-[#fffbf9]/90 sm:mt-3" style={{ letterSpacing: "0.02em" }}>
+              One place for your classes, materials, and progress.
             </p>
-            <div className="mt-6 flex flex-wrap items-center gap-3 sm:mt-8">
+            <div className="mt-4 flex flex-wrap items-center gap-2 sm:mt-5">
               <a
                 href="#about"
-                className="inline-flex items-center justify-center rounded-full border border-[#537aad]/40 bg-[#fffbf9]/90 px-5 py-2.5 text-[0.9375rem] font-medium text-[#537aad] backdrop-blur-sm transition-all hover:border-[#537aad] hover:bg-[#fffbf9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fffbf9] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
+                className="inline-flex items-center justify-center rounded-full border border-[#537aad]/40 bg-[#fffbf9]/90 px-4 py-2 text-[0.875rem] font-medium text-[#537aad] backdrop-blur-sm transition-all hover:border-[#537aad] hover:bg-[#fffbf9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fffbf9] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
               >
-                Learn more
+                learn more
               </a>
               <Link
-                href="/dashboard"
-                className="inline-flex items-center justify-center rounded-full border-2 border-[#fffbf9] px-5 py-2.5 text-[0.9375rem] font-medium text-[#fffbf9] transition-all hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(83,122,173,0.4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fffbf9] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
+                href="/onboard"
+                className="inline-flex items-center justify-center rounded-full border-2 border-[#fffbf9] px-4 py-2 text-[0.875rem] font-medium text-[#fffbf9] transition-all hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(83,122,173,0.4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fffbf9] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
                 style={{
                   background: "linear-gradient(135deg, #537aad 0%, #6b8fc4 50%, #537aad 100%)",
                   backgroundSize: "200% 200%",
                 }}
               >
-                Get started
+                get started
               </Link>
             </div>
           </div>
         </div>
       </section>
 
-      {/* About — gradient background, full height */}
+      {/* about */}
       <section
         id="about"
-        className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-5 py-24 sm:px-8 sm:py-28 md:px-12 lg:px-16"
-        style={{
-          background: "linear-gradient(165deg, #fffbf9 0%, #f8f6ff 40%, #fffbf9 70%, #f0eeff 100%)",
-        }}
+        className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-4 py-24 sm:px-6 sm:py-28 md:px-8 lg:px-10"
+        style={{ backgroundColor: "#fffbf9" }}
       >
-        <div className="relative mx-auto w-full max-w-[40rem]">
+        <div className="relative mx-auto w-full max-w-2xl">
           <h2
             className="font-serif font-normal tracking-tight"
             style={{
-              fontSize: "clamp(1.5rem, 3vw + 1rem, 2.25rem)",
+              fontSize: "clamp(1.25rem, 2.5vw + 0.75rem, 1.75rem)",
               letterSpacing: "-0.02em",
               lineHeight: 1.2,
               background: "linear-gradient(135deg, #537aad 0%, #6b8fc4 50%, #537aad 100%)",
@@ -122,34 +127,34 @@ export default function Home() {
               backgroundClip: "text",
             }}
           >
-            One place to study.
+            one place to study.
           </h2>
           <div
-            className="mt-8 space-y-6 font-sans text-[#537aad] sm:mt-10 sm:space-y-7"
+            className="mt-6 space-y-5 font-sans text-[#537aad] sm:mt-8 sm:space-y-6"
             style={{
-              fontSize: "clamp(0.9375rem, 1vw + 0.6rem, 1.0625rem)",
-              lineHeight: 1.65,
+              fontSize: "clamp(0.875rem, 0.9vw + 0.5rem, 0.9375rem)",
+              lineHeight: 1.7,
             }}
           >
             <p>
-              Knot uses the Canvas API to fetch your classes, syllabi, files, lecture notes, assignments, and upcoming exams. It builds a roadmap with nodes for each assignment, exam, and topic—and links them to the material they cover.
+              knot uses the Canvas API to fetch your classes, syllabi, files, lecture notes, assignments, and upcoming exams. it builds a <mark className="rounded px-0.5 text-[#537aad]" style={{ backgroundColor: "rgba(83,122,173,0.2)" }}>roadmap with nodes</mark> for each assignment, exam, and topic, and links them to the material they cover.
             </p>
             <p>
-              We quiz you on general topics (or any specific one you want to practice), identify where you need the most help with visual indicators, and surface the right material to fix it: lecture notes from Canvas, YouTube videos, and more. You pinpoint what you struggle with and focus there.
+              we quiz you on general topics (or any specific one you want to practice), identify where you need the most help with <mark className="rounded px-0.5 text-[#537aad]" style={{ backgroundColor: "rgba(83,122,173,0.2)" }}>visual indicators</mark>, and surface the right material to fix it: lecture notes from Canvas, YouTube videos, and more. you pinpoint what you struggle with and focus there.
             </p>
             <p>
-              All of it lives in one intuitive, visual mindmap that connects topics and shows your learning progress. One tool for your classes. No more juggling.
+              all of it lives in one <mark className="rounded px-0.5 text-[#537aad]" style={{ backgroundColor: "rgba(83,122,173,0.2)" }}>intuitive, visual mindmap</mark> that connects topics and shows your <mark className="rounded px-0.5 text-[#537aad]" style={{ backgroundColor: "rgba(83,122,173,0.2)" }}>learning progress</mark>. one tool for your classes. no more juggling.
             </p>
           </div>
           <p
-            className="mt-10 font-serif font-normal text-[#537aad] sm:mt-12"
+            className="mt-8 font-serif font-normal text-[#537aad] sm:mt-10"
             style={{
-              fontSize: "clamp(1.125rem, 1.5vw + 0.75rem, 1.375rem)",
+              fontSize: "clamp(1rem, 1.2vw + 0.6rem, 1.1875rem)",
               letterSpacing: "-0.01em",
               lineHeight: 1.4,
             }}
           >
-            You'll never need another tool to study for your classes again.
+            you'll never need another tool to study for your classes again.
           </p>
         </div>
       </section>
