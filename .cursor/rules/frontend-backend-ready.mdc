@@ -1,0 +1,17 @@
+---
+description: Frontend built for future backend integration
+alwaysApply: true
+---
+
+# Frontend-Backend Ready
+
+This project's frontend will have a backend implemented later. Keep all implementation **modular** and **easy for a backend engineer to connect** to.
+
+## Guidelines
+
+- **Separate data from UI**: Use hooks, services, or API layers for data fetching. Keep components focused on rendering.
+- **Clear data contracts**: Define types/interfaces for API responses and payloads. Use consistent naming (e.g. `User`, `Course`, `Assignment`).
+- **Mock data in one place**: Centralize mock/sample data so it can be swapped for real API calls later (e.g. `lib/mocks/`, `constants/sampleData.ts`).
+- **API client pattern**: Structure fetch logic in a dedicated module (e.g. `lib/api/` or `services/`) so backend can plug in endpoints.
+- **Avoid hardcoded IDs/state**: Prefer props and context over magic strings. Make it obvious where backend data would flow in.
+- **Modular components**: Keep components small and composable. Data-fetching logic should be easy to replace with real API calls.
