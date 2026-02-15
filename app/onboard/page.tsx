@@ -16,6 +16,10 @@ interface LinkItem {
   url: string;
 }
 
+interface CanvasClassItem {
+  className: string;
+}
+
 const LOADING_PHRASES = [
   "loading...",
   "fetching your courses...",
@@ -31,6 +35,7 @@ export default function OnboardPage() {
   const [canvasToken, setCanvasToken] = useState("");
   const [canvasLoading, setCanvasLoading] = useState(false);
   const [canvasLoadingPhrase, setCanvasLoadingPhrase] = useState(LOADING_PHRASES[0]);
+  const [canvasPreparing, setCanvasPreparing] = useState(false);
   const [canvasError, setCanvasError] = useState("");
   const [fetchedCourses, setFetchedCourses] = useState<string[]>([]);
   const [selectedCourses, setSelectedCourses] = useState<Set<string>>(new Set());
@@ -96,9 +101,19 @@ export default function OnboardPage() {
         throw new Error(typeof data?.error === "string" ? data.error : "Failed to load Canvas data");
       }
 
-      const classNames = Array.isArray(data?.classNames)
-        ? data.classNames.filter((n): n is string => typeof n === "string").map((n) => n.trim()).filter(Boolean)
-        : [];
+      const classNames = Array.isArray(data?.classes)
+        ? data.classes
+            .map((item: unknown) => {
+              if (item && typeof item === "object" && "className" in item) {
+                const className = (item as CanvasClassItem).className;
+                return typeof className === "string" ? className.trim() : "";
+              }
+              return "";
+            })
+            .filter(Boolean)
+        : Array.isArray(data?.classNames)
+          ? data.classNames.filter((n): n is string => typeof n === "string").map((n) => n.trim()).filter(Boolean)
+          : [];
 
       if (classNames.length === 0) {
         setCanvasError("no courses found. check that your token has access to courses with assignments or files.");
@@ -115,16 +130,37 @@ export default function OnboardPage() {
     }
   };
 
-  const handleCourseSelectionContinue = () => {
+  const handleCourseSelectionContinue = async () => {
     const selected = Array.from(selectedCourses);
-    if (selected.length === 0) return;
+    if (selected.length === 0 || canvasPreparing) return;
 
-    if (typeof window !== "undefined") {
-      localStorage.setItem("knot_canvas_token", canvasToken.trim());
-      localStorage.setItem("knot_canvas_class_names", JSON.stringify(selected));
-      localStorage.setItem("knot_onboard_source", "canvas");
+    setCanvasPreparing(true);
+    setCanvasError("");
+
+    try {
+      const res = await fetch("/api/canvas/concepts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ classNames: selected }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(typeof data?.error === "string" ? data.error : "Failed to prepare course concepts");
+      }
+
+      if (typeof window !== "undefined") {
+        localStorage.setItem("knot_canvas_token", canvasToken.trim());
+        localStorage.setItem("knot_canvas_class_names", JSON.stringify(selected));
+        localStorage.setItem("knot_onboard_source", "canvas");
+      }
+
+      router.push("/dashboard");
+    } catch (err) {
+      setCanvasError(err instanceof Error ? err.message : "Failed to prepare course concepts");
+    } finally {
+      setCanvasPreparing(false);
     }
-    router.push("/dashboard");
   };
 
   const toggleCourse = (name: string) => {
@@ -278,9 +314,11 @@ export default function OnboardPage() {
                   <button
                     type="button"
                     onClick={() => {
+                      setCanvasError("");
                       setFetchedCourses([]);
                       setSelectedCourses(new Set());
                     }}
+                    disabled={canvasPreparing}
                     className="flex items-center gap-1.5 rounded-lg border border-[#537aad]/40 px-4 py-2 text-sm font-medium lowercase text-[#537aad] transition-colors hover:bg-[#537aad]/5"
                   >
                     <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden>
@@ -291,13 +329,14 @@ export default function OnboardPage() {
                   <button
                     type="button"
                     onClick={handleCourseSelectionContinue}
-                    disabled={selectedCourses.size === 0}
+                    disabled={selectedCourses.size === 0 || canvasPreparing}
                     className="rounded-lg px-4 py-2 text-sm font-medium lowercase text-[#fffbf9] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                     style={{ background: "linear-gradient(135deg, #537aad 0%, #6b8fc4 100%)" }}
                   >
-                    continue to dashboard
+                    {canvasPreparing ? "preparing concepts..." : "continue to dashboard"}
                   </button>
                 </div>
+                {canvasError ? <p className="mt-3 text-sm lowercase text-red-600">{canvasError}</p> : null}
               </div>
             ) : (
             <form onSubmit={handleCanvasSubmit} className="mt-10">

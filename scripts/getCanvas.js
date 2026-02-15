@@ -410,8 +410,10 @@ function createCanvasClient(token, apiBase = DEFAULT_API_BASE) {
       }
     }
 
+    const uniqueClassNames = Array.from(new Set(classNames));
     return {
-      classNames: Array.from(new Set(classNames)),
+      classes: uniqueClassNames.map((className) => ({ className })),
+      classNames: uniqueClassNames,
     };
   }
 

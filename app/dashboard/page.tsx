@@ -5,6 +5,10 @@ import { useCallback, useEffect, useState } from "react";
 import type { CourseTree, StudyGoalTree, TreeItem } from "@/lib/types";
 import { mockCourseTrees, mockStudyGoalTrees } from "@/lib/mocks/trees";
 
+interface CanvasClassItem {
+  className: string;
+}
+
 function buildCanvasCourseTrees(classNames: string[]): CourseTree[] {
   return classNames.map((name, index) => ({
     source: "canvas",
@@ -18,6 +22,34 @@ function buildCanvasCourseTrees(classNames: string[]): CourseTree[] {
     modules: [],
     assignments: [],
   }));
+}
+
+function parseStoredClassNames(rawValue: string | null): string[] {
+  try {
+    const parsed = JSON.parse(rawValue || "[]");
+    if (Array.isArray(parsed)) {
+      return parsed
+        .filter((name): name is string => typeof name === "string")
+        .map((name) => name.trim())
+        .filter(Boolean);
+    }
+
+    if (parsed && typeof parsed === "object" && Array.isArray((parsed as { classes?: unknown }).classes)) {
+      return ((parsed as { classes: unknown[] }).classes as unknown[])
+        .map((item) => {
+          if (item && typeof item === "object" && "className" in item) {
+            const className = (item as CanvasClassItem).className;
+            return typeof className === "string" ? className.trim() : "";
+          }
+          return "";
+        })
+        .filter(Boolean);
+    }
+
+    return [];
+  } catch {
+    return [];
+  }
 }
 
 function MindmapNode({
@@ -111,13 +143,7 @@ export default function DashboardPage() {
     if (typeof window === "undefined") return;
     const source = localStorage.getItem("knot_onboard_source");
     if (source === "canvas") {
-      const storedClassNames = JSON.parse(localStorage.getItem("knot_canvas_class_names") || "[]");
-      const canvasTrees = buildCanvasCourseTrees(
-        (Array.isArray(storedClassNames) ? storedClassNames : [])
-          .filter((name): name is string => typeof name === "string")
-          .map((name) => name.trim())
-          .filter(Boolean),
-      );
+      const canvasTrees = buildCanvasCourseTrees(parseStoredClassNames(localStorage.getItem("knot_canvas_class_names")));
 
       setCourseTrees(canvasTrees);
       const first = canvasTrees[0];

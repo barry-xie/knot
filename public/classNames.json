@@ -1,10 +1,30 @@
 {
+  "classes": [
+    {
+      "className": "CS3114/5040 S26 OpenDSA",
+      "concepts": [
+        "Concept 1",
+        "Concept 2",
+        "Concept 3",
+        "Concept 4",
+        "Concept 5",
+        "Concept 6"
+      ]
+    },
+    {
+      "className": "Intro Computer Organization I",
+      "concepts": [
+        "Concept 7",
+        "Concept 8",
+        "Concept 9",
+        "Concept 10",
+        "Concept 11",
+        "Concept 12"
+      ]
+    }
+  ],
   "classNames": [
-    "(Required Online Program) VT MoneySmarts 2022-2023",
-    "CS3114_S25 (Farghally)",
-    "Data and Algorithm Analysis",
-    "Intermed Software Des",
-    "Professionalism in Computing S25",
-    "TS: Starting a CS Business"
+    "CS3114/5040 S26 OpenDSA",
+    "Intro Computer Organization I"
   ]
 }
