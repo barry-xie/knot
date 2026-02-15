@@ -419,7 +419,7 @@ export default function DashboardPage() {
         </div>
       </main>
 
-      <ChatWidget rightOffset={selectedUnitId && !selectedTaskId ? 340 : 0} />
+      <ChatWidget rightOffset={selectedUnitId && !selectedTaskId ? 340 : 0} taskData={allTasks} />
 
       {/* Task creation/edit modal */}
       {showTaskModal && courseOptions.length > 0 && (

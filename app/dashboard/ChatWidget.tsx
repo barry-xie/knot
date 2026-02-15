@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getTasks } from "@/lib/api/tasks";
+import type { Task } from "@/lib/api/tasks";
 
 type Message = { role: "user" | "assistant"; content: string };
 
@@ -29,7 +29,9 @@ function gatherMasteryData(): Record<string, unknown> {
   return data;
 }
 
-export default function ChatWidget({ rightOffset = 0 }: { rightOffset?: number }) {
+type Props = { rightOffset?: number; taskData?: Task[] };
+
+export default function ChatWidget({ rightOffset = 0, taskData = [] }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([WELCOME_MESSAGE]);
   const [input, setInput] = useState("");
@@ -65,7 +67,7 @@ export default function ChatWidget({ rightOffset = 0 }: { rightOffset?: number }
         body: JSON.stringify({
           messages: newMessages.filter((m) => m !== WELCOME_MESSAGE),
           masteryData: gatherMasteryData(),
-          taskData: getTasks(),
+          taskData,
         }),
       });
       const data = await res.json();
@@ -79,7 +81,7 @@ export default function ChatWidget({ rightOffset = 0 }: { rightOffset?: number }
     } finally {
       setIsLoading(false);
     }
-  }, [input, isLoading, messages]);
+  }, [input, isLoading, messages, taskData]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
