@@ -5,6 +5,21 @@ import { useCallback, useEffect, useState } from "react";
 import type { CourseTree, StudyGoalTree, TreeItem } from "@/lib/types";
 import { mockCourseTrees, mockStudyGoalTrees } from "@/lib/mocks/trees";
 
+function buildCanvasCourseTrees(classNames: string[]): CourseTree[] {
+  return classNames.map((name, index) => ({
+    source: "canvas",
+    course: {
+      id: index + 1,
+      name,
+      course_code: name,
+      syllabus_body: null,
+      workflow_state: "available",
+    },
+    modules: [],
+    assignments: [],
+  }));
+}
+
 function MindmapNode({
   label,
   variant = "default",
@@ -92,13 +107,20 @@ export default function DashboardPage() {
   const [studyGoalTrees, setStudyGoalTrees] = useState<StudyGoalTree[]>(mockStudyGoalTrees);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const loadFromStorage = useCallback(() => {
+  const loadFromStorage = useCallback(async () => {
     if (typeof window === "undefined") return;
     const source = localStorage.getItem("knot_onboard_source");
     if (source === "canvas") {
-      // Backend would fetch courses. For now keep mock.
-      setCourseTrees(mockCourseTrees);
-      const first = mockCourseTrees[0];
+      const storedClassNames = JSON.parse(localStorage.getItem("knot_canvas_class_names") || "[]");
+      const canvasTrees = buildCanvasCourseTrees(
+        (Array.isArray(storedClassNames) ? storedClassNames : [])
+          .filter((name): name is string => typeof name === "string")
+          .map((name) => name.trim())
+          .filter(Boolean),
+      );
+
+      setCourseTrees(canvasTrees);
+      const first = canvasTrees[0];
       if (first) setSelectedId(`course-${first.course.id}`);
     } else if (source === "manual") {
       const stored = JSON.parse(localStorage.getItem("knot_study_goals") || "[]");
@@ -112,7 +134,8 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    loadFromStorage();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadFromStorage();
   }, [loadFromStorage]);
 
   const allItems: { id: string; label: string; tree: TreeItem }[] = [
@@ -123,7 +146,7 @@ export default function DashboardPage() {
   const selected = selectedId ? allItems.find((i) => i.id === selectedId) : null;
 
   return (
-    <div className="flex min-h-screen lowercase bg-[#fffbf9] font-sans">
+    <div className="flex min-h-screen bg-[#fffbf9] font-sans">
       {/* Sidebar */}
       <aside
         className="flex w-56 shrink-0 flex-col border-r border-[#537aad]/10 bg-[#fffbf9]"

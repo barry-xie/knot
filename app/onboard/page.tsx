@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type OnboardMode = "canvas" | "manual" | null;
 
@@ -16,11 +16,22 @@ interface LinkItem {
   url: string;
 }
 
+const LOADING_PHRASES = [
+  "loading...",
+  "fetching your courses...",
+  "organizing your roadmap...",
+  "syncing assignments...",
+  "almost there...",
+];
+
 export default function OnboardPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [mode, setMode] = useState<OnboardMode>(null);
   const [canvasToken, setCanvasToken] = useState("");
+  const [canvasLoading, setCanvasLoading] = useState(false);
+  const [canvasLoadingPhrase, setCanvasLoadingPhrase] = useState(LOADING_PHRASES[0]);
+  const [canvasError, setCanvasError] = useState("");
   const [studyGoalName, setStudyGoalName] = useState("");
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
   const [links, setLinks] = useState<LinkItem[]>([]);
@@ -40,13 +51,61 @@ export default function OnboardPage() {
     setLinks((l) => l.map((x, j) => (j === i ? { ...x, [field]: value } : x)));
   };
 
-  const handleCanvasSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (typeof window !== "undefined") {
-      localStorage.setItem("knot_canvas_token", canvasToken);
-      localStorage.setItem("knot_onboard_source", "canvas");
+  useEffect(() => {
+    if (!canvasLoading) {
+      setCanvasLoadingPhrase(LOADING_PHRASES[0]);
+      return;
     }
-    router.push("/dashboard");
+
+    const pickPhrase = () => {
+      setCanvasLoadingPhrase((prev) => {
+        if (LOADING_PHRASES.length <= 1) return prev;
+        let next = prev;
+        while (next === prev) {
+          next = LOADING_PHRASES[Math.floor(Math.random() * LOADING_PHRASES.length)];
+        }
+        return next;
+      });
+    };
+
+    pickPhrase();
+    const interval = window.setInterval(pickPhrase, 1200);
+
+    return () => window.clearInterval(interval);
+  }, [canvasLoading]);
+
+  const handleCanvasSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const token = canvasToken.trim();
+    if (!token) return;
+
+    setCanvasLoading(true);
+    setCanvasError("");
+
+    try {
+      const res = await fetch("/api/canvas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(typeof data?.error === "string" ? data.error : "Failed to load Canvas data");
+      }
+
+      if (typeof window !== "undefined") {
+        localStorage.setItem("knot_canvas_token", token);
+        localStorage.setItem("knot_canvas_class_names", JSON.stringify(data?.classNames ?? []));
+        localStorage.setItem("knot_onboard_source", "canvas");
+      }
+
+      router.push("/dashboard");
+    } catch (err) {
+      setCanvasError(err instanceof Error ? err.message : "Failed to load Canvas data");
+    } finally {
+      setCanvasLoading(false);
+    }
   };
 
   const handleManualSubmit = (e: React.FormEvent) => {
@@ -129,7 +188,7 @@ export default function OnboardPage() {
               >
                 <span className="font-medium lowercase text-[#537aad]">2. add materials manually</span>
                 <span className="mt-2 text-sm lowercase leading-relaxed text-[#537aad]/70">
-                  upload documents and add links. name a study goal and we'll build a tree for you.
+                  upload documents and add links. name a study goal and we&apos;ll build a tree for you.
                 </span>
               </button>
             </div>
@@ -151,6 +210,9 @@ export default function OnboardPage() {
                   className="mt-3 w-full rounded-lg border border-[#537aad]/25 bg-[#fffbf9] px-4 py-3 lowercase text-[#537aad] placeholder:text-[#537aad]/50 focus:border-[#537aad] focus:outline-none focus:ring-2 focus:ring-[#537aad]/20"
                   required
                 />
+                {canvasError ? (
+                  <p className="mt-3 text-sm lowercase text-red-600">{canvasError}</p>
+                ) : null}
               </div>
               <div className="mt-8 flex gap-3">
                 <button
@@ -165,10 +227,11 @@ export default function OnboardPage() {
                 </button>
                 <button
                   type="submit"
+                  disabled={canvasLoading}
                   className="rounded-lg bg-[#537aad] px-4 py-2 text-sm font-medium lowercase text-[#fffbf9] transition-opacity hover:opacity-90"
                   style={{ background: "linear-gradient(135deg, #537aad 0%, #6b8fc4 100%)" }}
                 >
-                  connect and continue
+                  {canvasLoading ? canvasLoadingPhrase : "connect and continue"}
                 </button>
               </div>
             </form>

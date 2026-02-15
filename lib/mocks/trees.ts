@@ -93,17 +93,4 @@ export const mockCourseTrees: CourseTree[] = [
   },
 ];
 
-export const mockStudyGoalTrees: StudyGoalTree[] = [
-  {
-    source: "manual",
-    id: "sg-1",
-    name: "Machine Learning Basics",
-    documents: [
-      { name: "Lecture 1 Notes.pdf" },
-      { name: "Textbook Ch 1.pdf" },
-    ],
-    links: [
-      { title: "3Blue1Brown Neural Nets", url: "https://youtube.com/watch?v=aircAruvnKk" },
-    ],
-  },
-];
+export const mockStudyGoalTrees: StudyGoalTree[] = [];

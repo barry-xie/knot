@@ -154,7 +154,7 @@ export default function Home() {
               lineHeight: 1.4,
             }}
           >
-            you'll never need another tool to study for your classes again.
+            you&apos;ll never need another tool to study for your classes again.
           </p>
         </div>
       </section>
