@@ -322,7 +322,11 @@ export default function DashboardPage() {
                             <li key={unit.unit_id ?? i}>
                               <button
                                 type="button"
-                                onClick={() => { setSelectedUnitId(unitNodeId); setSelectedTaskId(null); }}
+                                onClick={() => {
+                                  setSelectedId(classId);
+                                  setSelectedUnitId(unitNodeId);
+                                  setSelectedTaskId(null);
+                                }}
                                 title={unit.unit_name ?? "Unit"}
                                 className={`block w-full truncate rounded-[5px] px-2 py-[5px] text-left text-[11px] transition-all duration-150 ${
                                   isUnitSelected

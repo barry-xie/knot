@@ -34,6 +34,12 @@ const COLORS = {
 
 const GRID_SPACING = 28;
 
+function hash(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h << 5) - h + s.charCodeAt(i);
+  return Math.abs(h);
+}
+
 // ─── Topic strength indicators ──────────────────────────────────────────────
 const TOPIC_STRENGTH = {
   strong: { color: "#10b981", bg: "bg-emerald-50", text: "text-emerald-700", label: "Strong" },
@@ -481,6 +487,20 @@ export default function PhysicsGraph({ graphData, selectedNodeId, onUnitSelect, 
         ctx.fillStyle = COLORS.nodeFill;
       }
       ctx.fill();
+
+      // ── Paper grain (concept nodes only) ──
+      if (!isCenter) {
+        const seed = hash(String((node as { id?: unknown }).id ?? "0"));
+        const n = 12;
+        ctx.fillStyle = "rgba(83,122,173,0.025)";
+        for (let i = 0; i < n; i++) {
+          const angle = (i / n) * 2 * Math.PI + (seed % 100) / 500;
+          const dist = (0.25 + ((i * 11 + seed) % 50) / 100) * r;
+          ctx.beginPath();
+          ctx.arc(x + Math.cos(angle) * dist, y + Math.sin(angle) * dist, 0.35, 0, 2 * Math.PI);
+          ctx.fill();
+        }
+      }
 
       // ── Border ──
       ctx.shadowColor = "transparent";
