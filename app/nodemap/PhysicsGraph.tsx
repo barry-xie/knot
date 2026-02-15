@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import * as d3 from "d3-force";
+import { type GraphNode, type GraphLink } from "./utils";
 
 const ForceGraph2D = dynamic(() => import("react-force-graph-2d"), { ssr: false });
 
@@ -18,26 +19,10 @@ const COLORS = {
   link: "#9ca3af",
 } as const;
 
-// ─── Course graph data ──────────────────────────────────────────────────────
-type GraphNode = {
-  id: string;
-  name: string;
-  val: number;
-  radius: number;
-  targetRadius?: number;
-  variant: "center" | "unit" | "assignment";
-};
-
-type GraphLink = { source: string; target: string };
-
 function hash(s: string) {
   let h = 0;
   for (let i = 0; i < s.length; i++) h = (h << 5) - h + s.charCodeAt(i);
   return Math.abs(h);
-}
-
-function easeOutCubic(t: number) {
-  return 1 - Math.pow(1 - t, 3);
 }
 
 // Gentle orbital drift around center
@@ -65,38 +50,6 @@ function orbitForce(strength: number) {
     }
   );
 }
-
-// Hub-and-spoke: every node links to center only (no chains)
-// Larger radii so text fits; center 80, units 42–56, assignments 40–52
-const COURSE_GRAPH_DATA = {
-  nodes: [
-    { id: "course", name: "Computer Science 101", val: 36, radius: 80, variant: "center" as const, fx: 0, fy: 0 },
-    { id: "algorithms", name: "Algorithms", val: 14, radius: 42 + (hash("algorithms") % 14), targetRadius: 90 + (hash("algorithms") % 110), variant: "unit" as const },
-    { id: "data-structures", name: "Data Structures", val: 14, radius: 42 + (hash("data-structures") % 14), targetRadius: 90 + (hash("data-structures") % 110), variant: "unit" as const },
-    { id: "web-dev", name: "Web Dev", val: 14, radius: 42 + (hash("web-dev") % 14), targetRadius: 90 + (hash("web-dev") % 110), variant: "unit" as const },
-    { id: "oop", name: "OOP", val: 14, radius: 42 + (hash("oop") % 14), targetRadius: 90 + (hash("oop") % 110), variant: "unit" as const },
-    { id: "networking", name: "Networking", val: 14, radius: 42 + (hash("networking") % 14), targetRadius: 90 + (hash("networking") % 110), variant: "unit" as const },
-    { id: "quiz-1", name: "Quiz 1", val: 8, radius: 40 + (hash("quiz-1") % 12), targetRadius: 90 + (hash("quiz-1") % 110), variant: "assignment" as const },
-    { id: "essay", name: "Essay", val: 8, radius: 40 + (hash("essay") % 12), targetRadius: 90 + (hash("essay") % 110), variant: "assignment" as const },
-    { id: "final-project", name: "Final Project", val: 8, radius: 40 + (hash("final-project") % 12), targetRadius: 90 + (hash("final-project") % 110), variant: "assignment" as const },
-    { id: "midterm", name: "Midterm", val: 8, radius: 40 + (hash("midterm") % 12), targetRadius: 90 + (hash("midterm") % 110), variant: "assignment" as const },
-    { id: "lab-1", name: "Lab 1", val: 8, radius: 40 + (hash("lab-1") % 12), targetRadius: 90 + (hash("lab-1") % 110), variant: "assignment" as const },
-    { id: "lab-2", name: "Lab 2", val: 8, radius: 40 + (hash("lab-2") % 12), targetRadius: 90 + (hash("lab-2") % 110), variant: "assignment" as const },
-  ] as GraphNode[],
-  links: [
-    { source: "course", target: "algorithms" },
-    { source: "course", target: "data-structures" },
-    { source: "course", target: "web-dev" },
-    { source: "course", target: "oop" },
-    { source: "course", target: "networking" },
-    { source: "course", target: "quiz-1" },
-    { source: "course", target: "essay" },
-    { source: "course", target: "final-project" },
-    { source: "course", target: "midterm" },
-    { source: "course", target: "lab-1" },
-    { source: "course", target: "lab-2" },
-  ] as GraphLink[],
-};
 
 // ─── Concept topic sidebar ───────────────────────────────────────────────────
 const SIDEBAR_WIDTH = 420;
@@ -176,15 +129,24 @@ function ConceptSidebar({
   );
 }
 
+export type PhysicsGraphProps = {
+  graphData: { nodes: GraphNode[]; links: GraphLink[] };
+};
+
 // ─── PhysicsGraph component ─────────────────────────────────────────────────
-export default function PhysicsGraph() {
-  const fgRef = useRef<{ d3Force: (name: string, force?: unknown) => unknown } | null>(null);
+export default function PhysicsGraph({ graphData }: PhysicsGraphProps) {
+  const fgRef = useRef<{
+    d3Force: (name: string, force?: unknown) => unknown;
+    centerAt: (x: number, y: number, duration?: number) => void;
+    zoom: (scale: number, duration?: number) => void;
+    zoomToFit?: (duration?: number, padding?: number) => void;
+  } | null>(null);
+  const fitPendingRef = useRef(true);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const [size, setSize] = useState({ w: 800, h: 500 });
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const [sidebarClosing, setSidebarClosing] = useState(false);
-  const [centerNodeId, setCenterNodeId] = useState<string | null>("course");
   const selectedNodeRef = useRef<GraphNode | null>(null);
   selectedNodeRef.current = selectedNode;
   useEffect(() => {
@@ -198,67 +160,24 @@ export default function PhysicsGraph() {
     return () => ro.disconnect();
   }, []);
 
-  // When center node changes: translate entire graph as a rigid body so clicked node is at center, then fix all nodes
-  const prevCenterRef = useRef<string | null>(null);
-  useEffect(() => {
-    const centerId = centerNodeId ?? "course";
-    const nodes = COURSE_GRAPH_DATA.nodes as (GraphNode & { x?: number; y?: number; fx?: number; fy?: number })[];
-    const isUserClick = prevCenterRef.current !== null && prevCenterRef.current !== centerId;
-
-    if (isUserClick) {
-      const centerNode = nodes.find((n) => String(n.id) === centerId);
-      if (centerNode && (centerNode.x != null || centerNode.y != null)) {
-        const dx = 0 - (centerNode.x ?? 0);
-        const dy = 0 - (centerNode.y ?? 0);
-        nodes.forEach((n) => {
-          n.x = (n.x ?? 0) + dx;
-          n.y = (n.y ?? 0) + dy;
-          if (String(n.id) === centerId) {
-            n.fx = 0;
-            n.fy = 0;
-          } else {
-            delete n.fx;
-            delete n.fy;
-          }
-        });
-        (fgRef.current as { d3ReheatSimulation?: () => void } | null)?.d3ReheatSimulation?.();
-      }
-    } else {
-      const centerIdToFix = centerId;
-      nodes.forEach((n) => {
-        if (String(n.id) === centerIdToFix) {
-          n.fx = 0;
-          n.fy = 0;
-        } else {
-          delete n.fx;
-          delete n.fy;
-        }
-      });
-      if (prevCenterRef.current === null) {
-        (fgRef.current as { d3ReheatSimulation?: () => void } | null)?.d3ReheatSimulation?.();
-      }
-    }
-    prevCenterRef.current = centerId;
-  }, [centerNodeId]);
-
   useEffect(() => {
     const config = () => {
       const fg = fgRef.current;
       if (!fg) return false;
 
-      // Softer repulsion — graceful, less stiff
-      fg.d3Force("charge", d3.forceManyBody().strength(-180));
+      // Strong repulsion for breathing room
+      fg.d3Force("charge", d3.forceManyBody().strength(-250));
 
-      // Gentle collide with minimal padding
+      // Strict collision to prevent overlaps
       fg.d3Force(
         "collide",
-        d3.forceCollide().radius((d) => ((d as GraphNode).radius ?? 28) * 1.15)
+        d3.forceCollide().radius((d) => ((d as GraphNode).radius ?? 28) * 1.5)
       );
 
       // Radial force — each node has its own distance (spread out)
       fg.d3Force(
         "radial",
-        d3.forceRadial((d) => (d as GraphNode).targetRadius ?? 150, 0, 0)
+        d3.forceRadial((d) => (d as GraphNode & { targetRadius?: number }).targetRadius ?? 150, 0, 0)
       );
 
       fg.d3Force("orbit", null);
@@ -284,13 +203,16 @@ export default function PhysicsGraph() {
     return () => cancelAnimationFrame(id);
   }, []);
 
+  // When graphData changes (e.g. course switch), fit again once the layout settles
+  useEffect(() => {
+    fitPendingRef.current = true;
+  }, [graphData]);
+
   // Shared radius so visible circle and hitbox always match
   const getNodeRadius = useCallback((node: Record<string, unknown>) => Number(node.radius) || 32, []);
 
   const sidebarClosingRef = useRef(false);
   sidebarClosingRef.current = sidebarClosing;
-  const centerNodeIdRef = useRef<string | null>(null);
-  centerNodeIdRef.current = centerNodeId;
 
   const nodeCanvasObject = useCallback(
     (node: Record<string, unknown>, ctx: CanvasRenderingContext2D) => {
@@ -302,8 +224,7 @@ export default function PhysicsGraph() {
         current &&
         !sidebarClosingRef.current &&
         String((node as { id?: unknown }).id) === String(current.id);
-      const centerId = centerNodeIdRef.current ?? "course";
-      const isCenter = String((node as { id?: unknown }).id) === centerId;
+      const isCenter = (node as { variant?: string }).variant === "center";
 
       ctx.save();
 
@@ -369,26 +290,48 @@ export default function PhysicsGraph() {
   );
 
   const handleNodeClick = useCallback(
-    (node: { id?: string | number; name?: string; variant?: string; [key: string]: unknown }, _ev: MouseEvent) => {
-      const id = String((node as GraphNode).id);
+    (node: { id?: string | number; name?: string; variant?: string; x?: number; y?: number; [key: string]: unknown }, _ev: MouseEvent) => {
       setSelectedNode(node as GraphNode);
       setSidebarClosing(false);
-      setCenterNodeId(id);
+      const fg = fgRef.current;
+      if (fg && typeof node.x === "number" && typeof node.y === "number") {
+        fg.centerAt(node.x, node.y, 1000);
+        fg.zoom(1.2, 1000);
+      }
     },
     []
   );
 
   const handleBackgroundClick = useCallback(() => {
-    if (selectedNodeRef.current) setSidebarClosing(true);
+    if (selectedNodeRef.current) {
+      setSidebarClosing(true);
+      const fg = fgRef.current;
+      if (fg) {
+        fg.centerAt(0, 0, 1000);
+        fg.zoom(1.0, 1000);
+      }
+    }
   }, []);
 
   const handleSidebarClose = useCallback(() => {
     setSidebarClosing(true);
+    const fg = fgRef.current;
+    if (fg) {
+      fg.centerAt(0, 0, 1000);
+      fg.zoom(1.0, 1000);
+    }
   }, []);
 
   const handleSidebarTransitionEnd = useCallback(() => {
     setSelectedNode(null);
     setSidebarClosing(false);
+  }, []);
+
+  const handleEngineStop = useCallback(() => {
+    if (fitPendingRef.current && fgRef.current?.zoomToFit) {
+      fitPendingRef.current = false;
+      fgRef.current.zoomToFit(400, 80);
+    }
   }, []);
 
   return (
@@ -404,15 +347,16 @@ export default function PhysicsGraph() {
           nodeCanvasObject={nodeCanvasObject}
           nodeCanvasObjectMode={() => "replace"}
           nodePointerAreaPaint={nodePointerAreaPaint}
-          graphData={COURSE_GRAPH_DATA}
+          graphData={graphData}
           cooldownTicks={Infinity}
-          d3AlphaDecay={0.0228}
+          d3AlphaDecay={0.05}
           d3VelocityDecay={0.25}
         minZoom={0.3}
         maxZoom={2}
         enableNodeDrag={true}
         onNodeClick={handleNodeClick}
         onBackgroundClick={handleBackgroundClick}
+        onEngineStop={handleEngineStop}
       />
       </div>
       <ConceptSidebar
