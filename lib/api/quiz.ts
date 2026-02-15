@@ -1,9 +1,14 @@
-import type { QuizRequest, QuizQuestion, QuizResult } from "@/lib/types/quiz";
+import type { QuizRequest, QuizQuestion, QuizResult, QuizSource } from "@/lib/types/quiz";
 
 const STORAGE_PREFIX = "knot_unit_test_results_";
 
-/** Call the quiz generation API. */
-export async function generateQuiz(req: QuizRequest): Promise<QuizQuestion[]> {
+export type GenerateQuizResponse = {
+  questions: QuizQuestion[];
+  sources?: QuizSource[];
+};
+
+/** Call the quiz generation API. Returns questions and, when RAG was used, the retrieved sources. */
+export async function generateQuiz(req: QuizRequest): Promise<GenerateQuizResponse> {
   const res = await fetch("/api/quiz/generate", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -14,7 +19,10 @@ export async function generateQuiz(req: QuizRequest): Promise<QuizQuestion[]> {
     throw new Error(body.error ?? `Quiz generation failed (${res.status})`);
   }
   const data = await res.json();
-  return data.questions as QuizQuestion[];
+  return {
+    questions: data.questions as QuizQuestion[],
+    ...(data.sources ? { sources: data.sources as QuizSource[] } : {}),
+  };
 }
 
 /** Score a completed quiz and compute per-topic mastery. */

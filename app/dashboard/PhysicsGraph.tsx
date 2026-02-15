@@ -292,10 +292,12 @@ export type PhysicsGraphProps = {
   selectedNodeId?: string | null;
   onUnitSelect?: (nodeId: string | null) => void;
   courseName?: string;
+  /** For RAG quiz: Canvas course id. */
+  courseId?: string;
 };
 
 // ─── PhysicsGraph component ─────────────────────────────────────────────────
-export default function PhysicsGraph({ graphData, selectedNodeId, onUnitSelect, courseName = "Course" }: PhysicsGraphProps) {
+export default function PhysicsGraph({ graphData, selectedNodeId, onUnitSelect, courseName = "Course", courseId }: PhysicsGraphProps) {
   const fgRef = useRef<{
     d3Force: (name: string, force?: unknown) => unknown;
     centerAt: (x: number, y: number, duration?: number) => void;
@@ -714,6 +716,7 @@ export default function PhysicsGraph({ graphData, selectedNodeId, onUnitSelect, 
       {/* Quiz overlay */}
       {quizMode && selectedNode?.unitData && (
         <Quiz
+          courseId={courseId}
           courseName={courseName}
           unitName={selectedNode.name}
           unitId={selectedNode.unitData.unit_id ?? selectedNode.id}

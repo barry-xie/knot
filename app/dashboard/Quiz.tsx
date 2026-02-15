@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import katex from "katex";
 import "katex/dist/katex.min.css";
-import type { QuizQuestion, QuizMode } from "@/lib/types/quiz";
+import type { QuizQuestion, QuizMode, QuizSource } from "@/lib/types/quiz";
 import { generateQuiz, scoreQuiz, mergeMastery, getStoredMastery, saveStoredMastery } from "@/lib/api/quiz";
 import type { UnitEntry } from "./utils";
 
@@ -35,6 +35,8 @@ function LatexText({ text, className }: { text: string; className?: string }) {
 
 // ─── Quiz component ─────────────────────────────────────────────────────────
 export type QuizProps = {
+  /** For RAG: Canvas course id; when set, quiz API may use retrieved chunks. */
+  courseId?: string;
   courseName: string;
   unitName: string;
   unitId: string;
@@ -47,6 +49,7 @@ export type QuizProps = {
 type QuizState = "loading" | "error" | "active" | "results";
 
 export default function Quiz({
+  courseId,
   courseName,
   unitName,
   unitId,
@@ -64,6 +67,7 @@ export default function Quiz({
   const [showExplanation, setShowExplanation] = useState(false);
   const [finalScore, setFinalScore] = useState(0);
   const [finalTopicScores, setFinalTopicScores] = useState<Record<string, number>>({});
+  const [sources, setSources] = useState<QuizSource[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Generate quiz on mount
@@ -81,15 +85,18 @@ export default function Quiz({
     const existing = getStoredMastery(unitId);
 
     generateQuiz({
+      courseId,
+      unitId,
       courseName,
       unitName,
       topics,
       mode,
       topicScores: mode === "practice" ? existing?.topicScores : undefined,
     })
-      .then((qs) => {
+      .then(({ questions: qs, sources: srcs }) => {
         if (cancelled) return;
         setQuestions(qs);
+        setSources(srcs ?? []);
         setAnswers(new Array(qs.length).fill(null));
         setState("active");
       })
@@ -100,7 +107,7 @@ export default function Quiz({
       });
 
     return () => { cancelled = true; };
-  }, [courseName, unitName, unitId, unitData, mode]);
+  }, [courseId, courseName, unitName, unitId, unitData, mode]);
 
   const currentQ = questions[currentIdx];
   const isLast = currentIdx === questions.length - 1;

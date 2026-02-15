@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { QuizRequest, QuizQuestion } from "@/lib/types/quiz";
+import { embedText } from "@/lib/rag/embed";
+import { retrieveChunks, isSnowflakeRagConfigured, type RagChunk } from "@/lib/rag/snowflake";
 
 /** Extract and repair JSON from Gemini response (handles markdown fences, trailing commas, extra text). */
 function extractJson(raw: string): string {
@@ -33,7 +35,7 @@ export async function POST(request: Request) {
     }
 
     const body = (await request.json()) as QuizRequest;
-    const { courseName, unitName, topics, mode, topicScores, questionCount } = body;
+    const { courseId, unitId, courseName, unitName, topics, mode, topicScores, questionCount } = body;
 
     if (!topics?.length) {
       return NextResponse.json({ error: "No topics provided" }, { status: 400 });
@@ -62,7 +64,45 @@ export async function POST(request: Request) {
       }
     }
 
-    const prompt = `You are a quiz generator for an educational platform.
+    // Optional RAG: retrieve chunks and prepend to prompt; on any failure, fall back to non-RAG
+    let chunks: RagChunk[] = [];
+    let ragQueryUsed = "";
+    if (courseId?.trim() && isSnowflakeRagConfigured()) {
+      try {
+        const topicNames = topics.map((t) => t.topicName).filter(Boolean);
+        const subtopicNames = topics.flatMap((t) => (t.subtopics ?? []).map((s) => s.subtopicName).filter(Boolean));
+        const queryParts = [`Unit: ${unitName}`];
+        if (topicNames.length) queryParts.push(`Topics: ${topicNames.join(", ")}`);
+        if (subtopicNames.length) queryParts.push(`Subtopics: ${subtopicNames.join(", ")}`);
+        const query = queryParts.join(". ");
+        ragQueryUsed = query;
+        const embedding = await embedText(query);
+        chunks = await retrieveChunks(courseId.trim(), embedding, { unitId: unitId?.trim() || undefined });
+        if (chunks.length >= 1) {
+          console.log(`[Quiz RAG] courseId=${courseId} unitId=${unitId ?? "(none)"} chunks=${chunks.length} query="${query.slice(0, 80)}..."`);
+        }
+      } catch (e) {
+        console.warn("RAG retrieval failed, using non-RAG prompt:", e);
+        chunks = [];
+      }
+    }
+
+    const materialBlock =
+      chunks.length >= 1
+        ? chunks
+            .map(
+              (c, i) =>
+                `[Source ${i + 1}] (chunk_id: ${c.chunk_id})\n  Course: ${c.course_name || ""} | Module: ${c.module_name || ""} | Document: ${c.document_title || "Unknown"}\n  Content:\n${(c.text || "").trim()}\n`
+            )
+            .join("\n")
+        : "";
+
+    const ragPreamble =
+      materialBlock.length > 0
+        ? `The following course material was retrieved for this unit. Base at least 80% of your answers on this material.\n\nCourse material (each has a chunk_id for reference):\n${materialBlock}\n\n`
+        : "";
+
+    const prompt = `${ragPreamble}You are a quiz generator for an educational platform.
 
 Course: "${courseName}"
 Unit: "${unitName}"
@@ -160,7 +200,28 @@ Return ONLY valid JSON (no markdown, no code fences) in this exact format:
       };
     });
 
-    return NextResponse.json({ questions });
+    const ragUsed = chunks.length >= 1;
+    const sources =
+      chunks.length >= 1
+        ? chunks.map((c) => ({
+            chunk_id: c.chunk_id,
+            document_id: c.document_id,
+            document_title: c.document_title || "",
+            course_name: c.course_name || "",
+            module_name: c.module_name || "",
+            score: c.score,
+            text: c.text || "",
+          }))
+        : undefined;
+    return NextResponse.json({
+      questions,
+      ...(sources ? { sources } : {}),
+      _debug: {
+        ragUsed,
+        chunkCount: chunks.length,
+        ...(ragQueryUsed ? { query: ragQueryUsed } : {}),
+      },
+    });
   } catch (err) {
     console.error("Quiz generation error:", err);
     return NextResponse.json(

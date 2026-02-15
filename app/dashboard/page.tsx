@@ -412,6 +412,7 @@ export default function DashboardPage() {
                   selectedNodeId={selectedUnitId}
                   onUnitSelect={(id) => { setSelectedUnitId(id); setSelectedTaskId(null); }}
                   courseName={selected.classEntry.className}
+                  courseId={String(selected.classEntry.courseId ?? selected.classEntry.className)}
                 />
               ) : (
                 <div className="flex h-full items-center justify-center rounded-xl bg-white/40 p-6">

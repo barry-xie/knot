@@ -91,6 +91,7 @@ export default function TaskView({ task, onClose, onDeleted, onEdit }: Props) {
   if (quizMode) {
     return (
       <Quiz
+        courseId={task.courseId}
         courseName={task.courseName}
         unitName={task.name}
         unitId={task.id}
