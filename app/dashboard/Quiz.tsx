@@ -240,6 +240,39 @@ export default function Quiz({
                 )}
               </div>
 
+              {/* RAG sources: show referenced chunks so user knows where questions are from */}
+              {sources.length > 0 && (
+                <div className="rounded-xl border border-[#537aad]/15 bg-[#537aad]/[0.04] overflow-hidden">
+                  <p className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-[#537aad]">
+                    Questions based on this material
+                  </p>
+                  <ul className="border-t border-[#537aad]/10 divide-y divide-[#537aad]/10">
+                    {sources.map((src) => (
+                      <li key={src.chunk_id}>
+                        <details className="group">
+                          <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2.5 text-left text-[11px] text-[#2c3e50] hover:bg-[#537aad]/[0.06] transition-colors">
+                            <span className="min-w-0 font-medium truncate" title={src.document_title}>
+                              {src.document_title || "Untitled document"}
+                            </span>
+                            {src.module_name ? (
+                              <span className="shrink-0 text-[10px] text-[#7a9bc7]">{src.module_name}</span>
+                            ) : null}
+                            <svg className="h-3.5 w-3.5 shrink-0 text-[#7a9bc7] transition-transform group-open:rotate-180" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M3 4.5L6 7.5L9 4.5" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          </summary>
+                          <div className="border-t border-[#537aad]/10 bg-white/60 px-3 py-2.5">
+                            <p className="whitespace-pre-wrap text-[11px] leading-relaxed text-[#4a5568]">
+                              {src.text.trim() || "No excerpt."}
+                            </p>
+                          </div>
+                        </details>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
               {/* Question */}
               <h2 className="text-[14px] font-medium leading-relaxed text-[#2c3e50]">
                 <LatexText text={currentQ.question} />
@@ -346,6 +379,39 @@ export default function Quiz({
                   })}
                 </div>
               </div>
+
+              {/* RAG sources on results */}
+              {sources.length > 0 && (
+                <div className="rounded-xl border border-[#537aad]/15 bg-[#537aad]/[0.04] overflow-hidden">
+                  <p className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-[#537aad]">
+                    Quiz was based on this material
+                  </p>
+                  <ul className="border-t border-[#537aad]/10 divide-y divide-[#537aad]/10">
+                    {sources.map((src) => (
+                      <li key={src.chunk_id}>
+                        <details className="group">
+                          <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2.5 text-left text-[11px] text-[#2c3e50] hover:bg-[#537aad]/[0.06] transition-colors">
+                            <span className="min-w-0 font-medium truncate" title={src.document_title}>
+                              {src.document_title || "Untitled document"}
+                            </span>
+                            {src.module_name ? (
+                              <span className="shrink-0 text-[10px] text-[#7a9bc7]">{src.module_name}</span>
+                            ) : null}
+                            <svg className="h-3.5 w-3.5 shrink-0 text-[#7a9bc7] transition-transform group-open:rotate-180" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M3 4.5L6 7.5L9 4.5" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          </summary>
+                          <div className="border-t border-[#537aad]/10 bg-white/60 px-3 py-2.5">
+                            <p className="whitespace-pre-wrap text-[11px] leading-relaxed text-[#4a5568]">
+                              {src.text.trim() || "No excerpt."}
+                            </p>
+                          </div>
+                        </details>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
               {/* Advice */}
               {finalScore < 70 && (
