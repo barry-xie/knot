@@ -1,5 +1,23 @@
 /** Shared quiz types, used by API route, service layer, and UI. */
 
+/** A single source citation from the RAG system. */
+export type SourceCitation = {
+  /** Human-readable title (e.g. "Module 3 | Lecture Notes: Binary Arithmetic") */
+  title: string;
+  /** Short excerpt from the source chunk that supports this question/answer */
+  excerpt?: string;
+  /** Document type hint: "lecture", "textbook", "assignment", "slide", etc. */
+  docType?: string;
+  /** Original chunk_id for traceability (e.g. "chunk-ab12c3d4") */
+  chunkId?: string;
+  /** Parent document_id (e.g. "doc-9f8e7d6c") */
+  documentId?: string;
+  /** Full text of the source chunk for verification */
+  chunkText?: string;
+  /** Optional page/section reference (e.g. "p. 42", "Section 3.1") */
+  pageRef?: string;
+};
+
 export type QuizQuestion = {
   id: string;
   question: string;
@@ -10,6 +28,8 @@ export type QuizQuestion = {
   subtopicId?: string;
   subtopicName?: string;
   explanation?: string;
+  /** RAG source citations backing this question */
+  sources?: SourceCitation[];
 };
 
 export type QuizMode = "diagnostic" | "practice";

@@ -96,9 +96,11 @@ export default function TaskView({ task, onClose, onDeleted, onEdit }: Props) {
         unitId={task.id}
         unitData={syntheticUnit}
         mode={quizMode}
-        onClose={() => setQuizMode(null)}
-        onComplete={() => {
+        onClose={() => {
           setQuizMode(null);
+          setMasteryVersion((v) => v + 1);
+        }}
+        onComplete={() => {
           setMasteryVersion((v) => v + 1);
         }}
       />

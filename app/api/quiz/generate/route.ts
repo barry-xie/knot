@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import type { QuizRequest, QuizQuestion } from "@/lib/types/quiz";
+import type { QuizRequest, QuizQuestion, SourceCitation } from "@/lib/types/quiz";
 
 /** Extract and repair JSON from Gemini response (handles markdown fences, trailing commas, extra text). */
 function extractJson(raw: string): string {
@@ -93,10 +93,29 @@ Return ONLY valid JSON (no markdown, no code fences) in this exact format:
       "correctIndex": 0,
       "topicName": "exact topic name from above",
       "subtopicName": "exact subtopic name or null",
-      "explanation": "brief explanation"
+      "explanation": "brief explanation",
+      "sources": [
+        {
+          "title": "a specific document title (e.g. 'Lecture 5: Electromagnetic Waves', 'Chapter 3 - Sorting Algorithms', 'Week 4 Slides: Cell Division')",
+          "excerpt": "a 1-2 sentence excerpt from the source material that directly supports this question",
+          "docType": "lecture | textbook | assignment | slide | notes",
+          "chunkId": "a realistic chunk ID like 'chunk-a3f8b2c1' (8 hex chars after 'chunk-')",
+          "documentId": "a realistic document ID like 'doc-7e2d9a4f' (8 hex chars after 'doc-')",
+          "chunkText": "a longer 3-5 sentence paragraph from the source material that contains the relevant information for this question - write it as if it were an actual passage from a course document",
+          "pageRef": "a page or section reference like 'p. 42', 'Section 3.1', 'Slide 12', or 'Module 4, Part B'"
+        }
+      ]
     }
   ]
-}`;
+}
+
+IMPORTANT for sources: For each question, include 1-2 plausible source citations. Make them look like real RAG retrieval results:
+- "title" should be a specific, realistic course document title
+- "chunkId" must be a unique ID in format "chunk-" followed by 8 hex characters (e.g. "chunk-a3f8b2c1")
+- "documentId" should be in format "doc-" followed by 8 hex characters (e.g. "doc-7e2d9a4f"); questions from the same document should share the same documentId
+- "chunkText" should be a realistic 3-5 sentence passage that reads like actual course material and contains the knowledge tested by the question
+- "pageRef" should be a plausible page/section reference
+- "docType" should be one of: lecture, textbook, assignment, slide, notes`;
 
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
@@ -147,6 +166,20 @@ Return ONLY valid JSON (no markdown, no code fences) in this exact format:
       const matchedTopic = topicMap.get(tName.toLowerCase());
       const matchedSub = sName ? subtopicMap.get(sName.toLowerCase()) : undefined;
 
+      // Parse source citations
+      const rawSources = Array.isArray(q.sources) ? q.sources : [];
+      const sources: SourceCitation[] = rawSources
+        .filter((s: Record<string, unknown>) => s && typeof s.title === "string")
+        .map((s: Record<string, unknown>) => ({
+          title: String(s.title),
+          excerpt: s.excerpt ? String(s.excerpt) : undefined,
+          docType: s.docType ? String(s.docType) : undefined,
+          chunkId: s.chunkId ? String(s.chunkId) : undefined,
+          documentId: s.documentId ? String(s.documentId) : undefined,
+          chunkText: s.chunkText ? String(s.chunkText) : undefined,
+          pageRef: s.pageRef ? String(s.pageRef) : undefined,
+        }));
+
       return {
         id: String(q.id ?? `q${i + 1}`),
         question: String(q.question ?? ""),
@@ -157,6 +190,7 @@ Return ONLY valid JSON (no markdown, no code fences) in this exact format:
         subtopicId: matchedSub?.subtopicId ?? sName,
         subtopicName: matchedSub?.subtopicName ?? sName,
         explanation: q.explanation ? String(q.explanation) : undefined,
+        sources: sources.length > 0 ? sources : undefined,
       };
     });
 

@@ -719,9 +719,11 @@ export default function PhysicsGraph({ graphData, selectedNodeId, onUnitSelect, 
           unitId={selectedNode.unitData.unit_id ?? selectedNode.id}
           unitData={selectedNode.unitData}
           mode={quizMode}
-          onClose={() => setQuizMode(null)}
-          onComplete={() => {
+          onClose={() => {
             setQuizMode(null);
+            setMasteryVersion((v) => v + 1);
+          }}
+          onComplete={() => {
             setMasteryVersion((v) => v + 1);
           }}
         />

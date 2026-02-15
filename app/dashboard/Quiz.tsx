@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import katex from "katex";
 import "katex/dist/katex.min.css";
-import type { QuizQuestion, QuizMode } from "@/lib/types/quiz";
+import type { QuizQuestion, QuizMode, SourceCitation } from "@/lib/types/quiz";
 import { generateQuiz, scoreQuiz, mergeMastery, getStoredMastery, saveStoredMastery } from "@/lib/api/quiz";
 import type { UnitEntry } from "./utils";
 
@@ -31,6 +31,138 @@ function renderLatex(text: string): string {
 function LatexText({ text, className }: { text: string; className?: string }) {
   const html = useMemo(() => renderLatex(text), [text]);
   return <span className={className} dangerouslySetInnerHTML={{ __html: html }} />;
+}
+
+// ─── Source citations ────────────────────────────────────────────────────────
+
+function SourceCard({ src, index }: { src: SourceCitation; index: number }) {
+  const [showChunk, setShowChunk] = useState(false);
+
+  return (
+    <div className="rounded-lg border border-[#537aad]/8 bg-[#537aad]/2">
+      <div className="px-3 py-2.5">
+        {/* Title row */}
+        <div className="flex items-start gap-2">
+          <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded bg-[#537aad]/10 text-[9px] font-bold text-[#537aad]">
+            {index + 1}
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] font-medium leading-snug text-[#2c3e50]">{src.title}</p>
+
+            {/* Metadata pills: docType, pageRef */}
+            <div className="mt-1.5 flex flex-wrap gap-1">
+              {src.docType && (
+                <span className="inline-flex items-center rounded-full bg-[#537aad]/8 px-2 py-0.5 text-[9px] font-medium text-[#537aad]">
+                  {src.docType}
+                </span>
+              )}
+              {src.pageRef && (
+                <span className="inline-flex items-center rounded-full bg-black/4 px-2 py-0.5 text-[9px] text-[#7a9bc7]">
+                  {src.pageRef}
+                </span>
+              )}
+            </div>
+
+            {/* Excerpt */}
+            {src.excerpt && (
+              <p className="mt-1.5 text-[10px] leading-relaxed text-[#7a9bc7] italic">
+                &ldquo;{src.excerpt}&rdquo;
+              </p>
+            )}
+
+            {/* IDs row */}
+            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+              {src.chunkId && (
+                <span className="font-mono text-[9px] text-[#537aad]/50" title="Chunk ID">
+                  chunk: {src.chunkId}
+                </span>
+              )}
+              {src.documentId && (
+                <span className="font-mono text-[9px] text-[#537aad]/50" title="Document ID">
+                  doc: {src.documentId}
+                </span>
+              )}
+            </div>
+
+            {/* View full chunk toggle */}
+            {src.chunkText && (
+              <button
+                type="button"
+                onClick={() => setShowChunk((v) => !v)}
+                className="mt-2 flex items-center gap-1 text-[9px] font-medium text-[#537aad]/60 transition-colors hover:text-[#537aad]"
+              >
+                <svg
+                  width="10"
+                  height="10"
+                  viewBox="0 0 10 10"
+                  className={`transition-transform duration-150 ${showChunk ? "rotate-90" : ""}`}
+                >
+                  <path d="M3 2l4 3-4 3" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                {showChunk ? "Hide" : "View"} full chunk
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Expanded chunk text */}
+      {showChunk && src.chunkText && (
+        <div className="border-t border-[#537aad]/6 bg-white/60 px-3 py-2.5">
+          <p className="font-mono text-[10px] leading-relaxed text-[#4a5568] whitespace-pre-wrap">
+            {src.chunkText}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SourceCitations({ sources, className }: { sources?: SourceCitation[]; className?: string }) {
+  const [open, setOpen] = useState(false);
+  if (!sources || sources.length === 0) return null;
+
+  return (
+    <div className={className}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="group flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-[#537aad]/60 transition-colors hover:text-[#537aad]"
+      >
+        <svg
+          width="12"
+          height="12"
+          viewBox="0 0 16 16"
+          fill="none"
+          className="shrink-0 opacity-50 group-hover:opacity-80 transition-opacity"
+        >
+          <path
+            d="M3 2h7l3 3v9a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1z"
+            stroke="currentColor"
+            strokeWidth="1.2"
+          />
+          <path d="M5 9h6M5 11.5h4" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
+        </svg>
+        {sources.length} source{sources.length !== 1 ? "s" : ""}
+        <svg
+          width="10"
+          height="10"
+          viewBox="0 0 10 10"
+          className={`shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+        >
+          <path d="M2.5 3.5L5 6L7.5 3.5" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="mt-2 space-y-2">
+          {sources.map((src, i) => (
+            <SourceCard key={src.chunkId ?? i} src={src} index={i} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 // ─── Quiz component ─────────────────────────────────────────────────────────
@@ -285,13 +417,18 @@ export default function Quiz({
                 })}
               </div>
 
-              {/* Explanation */}
-              {showExplanation && currentQ.explanation && (
-                <div className="rounded-xl bg-[#537aad]/4 border border-[#537aad]/10 px-4 py-3">
-                  <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-[#537aad]">Explanation</p>
-                  <p className="text-[12px] leading-relaxed text-[#4a5568]">
-                    <LatexText text={currentQ.explanation} />
-                  </p>
+              {/* Explanation + Sources */}
+              {showExplanation && (currentQ.explanation || (currentQ.sources && currentQ.sources.length > 0)) && (
+                <div className="rounded-xl bg-[#537aad]/4 border border-[#537aad]/10 px-4 py-3 space-y-3">
+                  {currentQ.explanation && (
+                    <div>
+                      <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-[#537aad]">Explanation</p>
+                      <p className="text-[12px] leading-relaxed text-[#4a5568]">
+                        <LatexText text={currentQ.explanation} />
+                      </p>
+                    </div>
+                  )}
+                  <SourceCitations sources={currentQ.sources} />
                 </div>
               )}
             </div>
@@ -339,6 +476,27 @@ export default function Quiz({
                   })}
                 </div>
               </div>
+
+              {/* All sources used in this quiz */}
+              {(() => {
+                const allSources = questions.flatMap((q) => q.sources ?? []);
+                // Deduplicate by title
+                const seen = new Set<string>();
+                const unique = allSources.filter((s) => {
+                  if (seen.has(s.title)) return false;
+                  seen.add(s.title);
+                  return true;
+                });
+                if (unique.length === 0) return null;
+                return (
+                  <div>
+                    <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-[0.06em] text-[#7a9bc7]">
+                      Sources Referenced
+                    </h3>
+                    <SourceCitations sources={unique} />
+                  </div>
+                );
+              })()}
 
               {/* Advice */}
               {finalScore < 70 && (
