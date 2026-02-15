@@ -18,10 +18,16 @@ export type SourceCitation = {
   pageRef?: string;
 };
 
+export type QuestionType = "mcq" | "essay";
+
 export type QuizQuestion = {
   id: string;
+  /** "mcq" (default) or "essay" */
+  type?: QuestionType;
   question: string;
+  /** MCQ only */
   options: string[];
+  /** MCQ only */
   correctIndex: number;
   topicId: string;
   topicName: string;
@@ -29,6 +35,24 @@ export type QuizQuestion = {
   subtopicName?: string;
   explanation?: string;
   /** RAG source citations backing this question */
+  sources?: SourceCitation[];
+  /** Essay only: rubric/criteria for grading (shown after submission) */
+  rubric?: string;
+  /** Essay only: model answer for reference */
+  modelAnswer?: string;
+};
+
+/** Response from the essay grading API */
+export type EssayGradeResult = {
+  /** 0–100 */
+  score: number;
+  /** Qualitative feedback */
+  feedback: string;
+  /** Strengths identified */
+  strengths?: string[];
+  /** Areas for improvement */
+  improvements?: string[];
+  /** Source citations used for grading */
   sources?: SourceCitation[];
 };
 

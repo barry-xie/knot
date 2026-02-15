@@ -1,4 +1,4 @@
-import type { QuizRequest, QuizQuestion, QuizResult } from "@/lib/types/quiz";
+import type { QuizRequest, QuizQuestion, QuizResult, EssayGradeResult, SourceCitation } from "@/lib/types/quiz";
 
 const STORAGE_PREFIX = "knot_unit_test_results_";
 
@@ -17,31 +17,61 @@ export async function generateQuiz(req: QuizRequest): Promise<QuizQuestion[]> {
   return data.questions as QuizQuestion[];
 }
 
-/** Score a completed quiz and compute per-topic mastery. */
+/** Grade a short essay answer via Gemini. */
+export async function gradeEssay(req: {
+  courseName: string;
+  question: string;
+  rubric?: string;
+  modelAnswer?: string;
+  studentAnswer: string;
+  sources?: SourceCitation[];
+}): Promise<EssayGradeResult> {
+  const res = await fetch("/api/quiz/grade-essay", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(req),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error ?? `Essay grading failed (${res.status})`);
+  }
+  return (await res.json()) as EssayGradeResult;
+}
+
+/**
+ * Score a completed quiz and compute per-topic mastery.
+ * `answers` holds MCQ option indices; `essayScores` maps question index → 0-100.
+ */
 export function scoreQuiz(
   questions: QuizQuestion[],
-  answers: number[]
+  answers: (number | null)[],
+  essayScores?: Record<number, number>
 ): { score: number; topicScores: Record<string, number> } {
   if (questions.length === 0) return { score: 0, topicScores: {} };
 
-  // Group questions by topicId
-  const topicCorrect: Record<string, number> = {};
+  const topicPoints: Record<string, number> = {};
   const topicTotal: Record<string, number> = {};
-  let totalCorrect = 0;
+  let totalPoints = 0;
 
   questions.forEach((q, i) => {
-    const correct = answers[i] === q.correctIndex;
-    if (correct) totalCorrect++;
+    const isEssay = q.type === "essay";
+    let qScore: number;
+    if (isEssay) {
+      qScore = (essayScores?.[i] ?? 0) / 100;
+    } else {
+      qScore = answers[i] === q.correctIndex ? 1 : 0;
+    }
+    totalPoints += qScore;
     topicTotal[q.topicId] = (topicTotal[q.topicId] ?? 0) + 1;
-    topicCorrect[q.topicId] = (topicCorrect[q.topicId] ?? 0) + (correct ? 1 : 0);
+    topicPoints[q.topicId] = (topicPoints[q.topicId] ?? 0) + qScore;
   });
 
   const topicScores: Record<string, number> = {};
   for (const tid of Object.keys(topicTotal)) {
-    topicScores[tid] = Math.round((topicCorrect[tid] / topicTotal[tid]) * 100);
+    topicScores[tid] = Math.round((topicPoints[tid] / topicTotal[tid]) * 100);
   }
 
-  const score = Math.round((totalCorrect / questions.length) * 100);
+  const score = Math.round((totalPoints / questions.length) * 100);
   return { score, topicScores };
 }
 

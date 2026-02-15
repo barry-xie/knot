@@ -72,11 +72,13 @@ Topics and subtopics in this unit:
 ${topicListing}
 ${focusInstruction}
 
-Generate exactly ${totalQuestions} multiple-choice questions.
+Generate exactly ${totalQuestions} questions. Of these, approximately ${Math.max(1, Math.floor(totalQuestions * 0.25))} should be SHORT ESSAY questions (type: "essay") and the rest should be MULTIPLE CHOICE (type: "mcq"). Spread the essay questions across different topics.
 
 Rules:
 - ${mode === "diagnostic" ? "Distribute questions EVENLY across all topics and subtopics" : "Focus on weak topics but include some from strong topics"}
-- Each question must have exactly 4 options (A, B, C, D)
+- MCQ questions must have exactly 4 options (A, B, C, D)
+- Essay questions should require a 2-4 sentence response that demonstrates understanding
+- Essay questions must include a "rubric" (2-3 grading criteria) and a "modelAnswer" (an ideal response)
 - Questions should test understanding, not just recall
 - For math, programming, or technical content, use LaTeX notation wrapped in $...$ for inline or $$...$$ for block
 - Include a brief explanation for each correct answer
@@ -88,6 +90,7 @@ Return ONLY valid JSON (no markdown, no code fences) in this exact format:
   "questions": [
     {
       "id": "q1",
+      "type": "mcq",
       "question": "...",
       "options": ["...", "...", "...", "..."],
       "correctIndex": 0,
@@ -96,25 +99,46 @@ Return ONLY valid JSON (no markdown, no code fences) in this exact format:
       "explanation": "brief explanation",
       "sources": [
         {
-          "title": "a specific document title (e.g. 'Lecture 5: Electromagnetic Waves', 'Chapter 3 - Sorting Algorithms', 'Week 4 Slides: Cell Division')",
-          "excerpt": "a 1-2 sentence excerpt from the source material that directly supports this question",
+          "title": "a specific document title",
+          "excerpt": "a 1-2 sentence excerpt from the source material",
           "docType": "lecture | textbook | assignment | slide | notes",
-          "chunkId": "a realistic chunk ID like 'chunk-a3f8b2c1' (8 hex chars after 'chunk-')",
-          "documentId": "a realistic document ID like 'doc-7e2d9a4f' (8 hex chars after 'doc-')",
-          "chunkText": "a longer 3-5 sentence paragraph from the source material that contains the relevant information for this question - write it as if it were an actual passage from a course document",
-          "pageRef": "a page or section reference like 'p. 42', 'Section 3.1', 'Slide 12', or 'Module 4, Part B'"
+          "chunkId": "chunk-a3f8b2c1",
+          "documentId": "doc-7e2d9a4f",
+          "chunkText": "a 3-5 sentence passage from the course material",
+          "pageRef": "p. 42 or Section 3.1"
+        }
+      ]
+    },
+    {
+      "id": "q2",
+      "type": "essay",
+      "question": "Explain in 2-4 sentences how ...",
+      "options": [],
+      "correctIndex": -1,
+      "topicName": "exact topic name from above",
+      "subtopicName": "exact subtopic name or null",
+      "explanation": "key points that should be covered",
+      "rubric": "1) Identifies the core concept correctly. 2) Provides a specific example. 3) Explains the relationship between X and Y.",
+      "modelAnswer": "A well-written 2-4 sentence ideal answer that covers all rubric criteria",
+      "sources": [
+        {
+          "title": "a specific document title",
+          "excerpt": "a 1-2 sentence excerpt",
+          "docType": "lecture | textbook | assignment | slide | notes",
+          "chunkId": "chunk-b4e6f8a2",
+          "documentId": "doc-c1d2e3f4",
+          "chunkText": "a 3-5 sentence passage from the course material",
+          "pageRef": "Section 2.3"
         }
       ]
     }
   ]
 }
 
-IMPORTANT for sources: For each question, include 1-2 plausible source citations. Make them look like real RAG retrieval results:
-- "title" should be a specific, realistic course document title
-- "chunkId" must be a unique ID in format "chunk-" followed by 8 hex characters (e.g. "chunk-a3f8b2c1")
-- "documentId" should be in format "doc-" followed by 8 hex characters (e.g. "doc-7e2d9a4f"); questions from the same document should share the same documentId
-- "chunkText" should be a realistic 3-5 sentence passage that reads like actual course material and contains the knowledge tested by the question
-- "pageRef" should be a plausible page/section reference
+IMPORTANT for sources: For each question (both MCQ and essay), include 1-2 plausible source citations:
+- "chunkId" must be unique, format "chunk-" + 8 hex chars
+- "documentId" format "doc-" + 8 hex chars; same document = same documentId
+- "chunkText" should be a realistic passage that reads like actual course material
 - "docType" should be one of: lecture, textbook, assignment, slide, notes`;
 
     const genAI = new GoogleGenerativeAI(apiKey);
@@ -180,16 +204,21 @@ IMPORTANT for sources: For each question, include 1-2 plausible source citations
           pageRef: s.pageRef ? String(s.pageRef) : undefined,
         }));
 
+      const qType = String(q.type ?? "mcq") === "essay" ? "essay" : "mcq";
+
       return {
         id: String(q.id ?? `q${i + 1}`),
+        type: qType as "mcq" | "essay",
         question: String(q.question ?? ""),
-        options: Array.isArray(q.options) ? q.options.map(String) : [],
-        correctIndex: typeof q.correctIndex === "number" ? q.correctIndex : 0,
+        options: qType === "mcq" && Array.isArray(q.options) ? q.options.map(String) : [],
+        correctIndex: qType === "mcq" && typeof q.correctIndex === "number" ? q.correctIndex : -1,
         topicId: matchedTopic?.topicId ?? tName,
         topicName: matchedTopic?.topicName ?? tName,
         subtopicId: matchedSub?.subtopicId ?? sName,
         subtopicName: matchedSub?.subtopicName ?? sName,
         explanation: q.explanation ? String(q.explanation) : undefined,
+        rubric: q.rubric ? String(q.rubric) : undefined,
+        modelAnswer: q.modelAnswer ? String(q.modelAnswer) : undefined,
         sources: sources.length > 0 ? sources : undefined,
       };
     });

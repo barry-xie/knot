@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import katex from "katex";
 import "katex/dist/katex.min.css";
-import type { QuizQuestion, QuizMode, SourceCitation } from "@/lib/types/quiz";
-import { generateQuiz, scoreQuiz, mergeMastery, getStoredMastery, saveStoredMastery } from "@/lib/api/quiz";
+import type { QuizQuestion, QuizMode, SourceCitation, EssayGradeResult } from "@/lib/types/quiz";
+import { generateQuiz, gradeEssay, scoreQuiz, mergeMastery, getStoredMastery, saveStoredMastery } from "@/lib/api/quiz";
 import type { UnitEntry } from "./utils";
 
 // ─── LaTeX renderer ─────────────────────────────────────────────────────────
@@ -198,6 +198,11 @@ export default function Quiz({
   const [finalTopicScores, setFinalTopicScores] = useState<Record<string, number>>({});
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Essay state
+  const [essayText, setEssayText] = useState("");
+  const [essayGrading, setEssayGrading] = useState(false);
+  const [essayGrades, setEssayGrades] = useState<Record<number, EssayGradeResult>>({});
+
   // Generate quiz on mount
   useEffect(() => {
     let cancelled = false;
@@ -244,23 +249,61 @@ export default function Quiz({
   }, [showExplanation]);
 
   const handleConfirm = useCallback(() => {
-    if (selectedOption === null) return;
-    setShowExplanation(true);
-    setAnswers((prev) => {
-      const next = [...prev];
-      next[currentIdx] = selectedOption;
-      return next;
-    });
-  }, [selectedOption, currentIdx]);
+    const q = questions[currentIdx];
+    if (!q) return;
+
+    if (q.type === "essay") {
+      if (!essayText.trim()) return;
+      setEssayGrading(true);
+      gradeEssay({
+        courseName,
+        question: q.question,
+        rubric: q.rubric,
+        modelAnswer: q.modelAnswer,
+        studentAnswer: essayText.trim(),
+        sources: q.sources,
+      })
+        .then((result) => {
+          setEssayGrades((prev) => ({ ...prev, [currentIdx]: result }));
+          setShowExplanation(true);
+          setEssayGrading(false);
+        })
+        .catch(() => {
+          // Fallback: still show explanation, default score
+          setEssayGrades((prev) => ({
+            ...prev,
+            [currentIdx]: {
+              score: 50,
+              feedback: "Unable to grade automatically. Review the model answer below.",
+            },
+          }));
+          setShowExplanation(true);
+          setEssayGrading(false);
+        });
+    } else {
+      if (selectedOption === null) return;
+      setShowExplanation(true);
+      setAnswers((prev) => {
+        const next = [...prev];
+        next[currentIdx] = selectedOption;
+        return next;
+      });
+    }
+  }, [selectedOption, currentIdx, questions, essayText, courseName]);
 
   const handleNext = useCallback(() => {
     if (isLast) {
-      // Finish quiz
+      // Finish quiz — include MCQ answers and essay scores
       const finalAnswers = [...answers];
-      finalAnswers[currentIdx] = selectedOption ?? 0;
-      const { score, topicScores: ts } = scoreQuiz(questions, finalAnswers as number[]);
+      if (questions[currentIdx]?.type !== "essay") {
+        finalAnswers[currentIdx] = selectedOption ?? 0;
+      }
+      const eScores: Record<number, number> = {};
+      for (const [idx, grade] of Object.entries(essayGrades)) {
+        eScores[Number(idx)] = grade.score;
+      }
+      const { score, topicScores: ts } = scoreQuiz(questions, finalAnswers, eScores);
 
-      // Merge with existing mastery
       const existing = getStoredMastery(unitId);
       const merged = mergeMastery(existing?.topicScores, ts, mode);
       saveStoredMastery(unitId, merged);
@@ -273,8 +316,9 @@ export default function Quiz({
       setCurrentIdx((i) => i + 1);
       setSelectedOption(null);
       setShowExplanation(false);
+      setEssayText("");
     }
-  }, [isLast, answers, currentIdx, selectedOption, questions, unitId, mode, onComplete]);
+  }, [isLast, answers, currentIdx, selectedOption, questions, unitId, mode, onComplete, essayGrades]);
 
   // Close on Escape
   useEffect(() => {
@@ -300,6 +344,7 @@ export default function Quiz({
             {state === "active" && (
               <p className="mt-0.5 text-[11px] text-[#7a9bc7]">
                 Question {currentIdx + 1} of {questions.length}
+                {currentQ?.type === "essay" ? " · Essay" : " · Multiple choice"}
               </p>
             )}
           </div>
@@ -353,7 +398,7 @@ export default function Quiz({
           {/* Active question */}
           {state === "active" && currentQ && (
             <div className="flex flex-col gap-5">
-              {/* Topic tag */}
+              {/* Topic tag + question type */}
               <div className="flex flex-wrap gap-1.5">
                 <span className="rounded-full bg-[#537aad]/[0.07] px-2.5 py-0.5 text-[10px] font-medium text-[#537aad]">
                   {currentQ.topicName}
@@ -363,6 +408,11 @@ export default function Quiz({
                     {currentQ.subtopicName}
                   </span>
                 )}
+                {currentQ.type === "essay" && (
+                  <span className="rounded-full bg-amber-50 border border-amber-200/60 px-2.5 py-0.5 text-[10px] font-medium text-amber-700">
+                    Short essay
+                  </span>
+                )}
               </div>
 
               {/* Question */}
@@ -370,55 +420,152 @@ export default function Quiz({
                 <LatexText text={currentQ.question} />
               </h2>
 
-              {/* Options */}
-              <div className="flex flex-col gap-2">
-                {currentQ.options.map((opt, i) => {
-                  const letter = String.fromCharCode(65 + i);
-                  const isSelected = selectedOption === i;
-                  const isCorrect = i === currentQ.correctIndex;
+              {/* ── MCQ options ── */}
+              {currentQ.type !== "essay" && (
+                <div className="flex flex-col gap-2">
+                  {currentQ.options.map((opt, i) => {
+                    const letter = String.fromCharCode(65 + i);
+                    const isSelected = selectedOption === i;
+                    const isCorrect = i === currentQ.correctIndex;
 
-                  let optClass = "border-black/8 bg-white text-[#2c3e50] hover:border-[#537aad]/30 hover:bg-[#537aad]/[0.02]";
-                  if (showExplanation) {
-                    if (isCorrect) {
-                      optClass = "border-emerald-400 bg-emerald-50 text-emerald-800";
-                    } else if (isSelected && !isCorrect) {
-                      optClass = "border-red-300 bg-red-50 text-red-700";
-                    } else {
-                      optClass = "border-black/5 bg-black/[0.01] text-[#7a9bc7]";
+                    let optClass = "border-black/8 bg-white text-[#2c3e50] hover:border-[#537aad]/30 hover:bg-[#537aad]/[0.02]";
+                    if (showExplanation) {
+                      if (isCorrect) {
+                        optClass = "border-emerald-400 bg-emerald-50 text-emerald-800";
+                      } else if (isSelected && !isCorrect) {
+                        optClass = "border-red-300 bg-red-50 text-red-700";
+                      } else {
+                        optClass = "border-black/5 bg-black/[0.01] text-[#7a9bc7]";
+                      }
+                    } else if (isSelected) {
+                      optClass = "border-[#537aad] bg-[#537aad]/4 text-[#537aad] ring-1 ring-[#537aad]/20";
                     }
-                  } else if (isSelected) {
-                    optClass = "border-[#537aad] bg-[#537aad]/4 text-[#537aad] ring-1 ring-[#537aad]/20";
-                  }
 
-                  return (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => handleSelect(i)}
-                      disabled={showExplanation}
-                      className={`flex items-start gap-3 rounded-xl border px-4 py-3 text-left transition-all duration-150 ${optClass} ${showExplanation ? "cursor-default" : "cursor-pointer"}`}
-                    >
-                      <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-[10px] font-bold ${
-                        showExplanation && isCorrect
-                          ? "bg-emerald-500 text-white"
-                          : showExplanation && isSelected && !isCorrect
-                          ? "bg-red-400 text-white"
-                          : isSelected
-                          ? "bg-[#537aad] text-white"
-                          : "bg-black/5 text-[#7a9bc7]"
-                      }`}>
-                        {letter}
-                      </span>
-                      <span className="text-[12px] leading-relaxed">
-                        <LatexText text={opt} />
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+                    return (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => handleSelect(i)}
+                        disabled={showExplanation}
+                        className={`flex items-start gap-3 rounded-xl border px-4 py-3 text-left transition-all duration-150 ${optClass} ${showExplanation ? "cursor-default" : "cursor-pointer"}`}
+                      >
+                        <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-[10px] font-bold ${
+                          showExplanation && isCorrect
+                            ? "bg-emerald-500 text-white"
+                            : showExplanation && isSelected && !isCorrect
+                            ? "bg-red-400 text-white"
+                            : isSelected
+                            ? "bg-[#537aad] text-white"
+                            : "bg-black/5 text-[#7a9bc7]"
+                        }`}>
+                          {letter}
+                        </span>
+                        <span className="text-[12px] leading-relaxed">
+                          <LatexText text={opt} />
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
 
-              {/* Explanation + Sources */}
-              {showExplanation && (currentQ.explanation || (currentQ.sources && currentQ.sources.length > 0)) && (
+              {/* ── Essay input ── */}
+              {currentQ.type === "essay" && !showExplanation && (
+                <div className="flex flex-col gap-2">
+                  <textarea
+                    value={essayText}
+                    onChange={(e) => setEssayText(e.target.value)}
+                    disabled={essayGrading}
+                    placeholder="Write your answer here (2-4 sentences)..."
+                    className="w-full resize-none rounded-xl border border-black/8 bg-white px-4 py-3 text-[12px] leading-relaxed text-[#2c3e50] placeholder:text-[#7a9bc7]/40 focus:border-[#537aad]/40 focus:outline-none focus:ring-1 focus:ring-[#537aad]/20 transition-all duration-150"
+                    rows={4}
+                  />
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-[#7a9bc7]/50">
+                      {essayText.trim().split(/\s+/).filter(Boolean).length} words
+                    </span>
+                    {essayGrading && (
+                      <div className="flex items-center gap-2">
+                        <div className="h-3 w-3 animate-spin rounded-full border-[1.5px] border-[#537aad]/20 border-t-[#537aad]" />
+                        <span className="text-[10px] text-[#7a9bc7]">Grading...</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* ── Essay: submitted answer (locked) ── */}
+              {currentQ.type === "essay" && showExplanation && (
+                <div className="rounded-xl border border-black/6 bg-black/1 px-4 py-3">
+                  <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-[#7a9bc7]">Your answer</p>
+                  <p className="text-[12px] leading-relaxed text-[#2c3e50]">{essayText}</p>
+                </div>
+              )}
+
+              {/* ── Essay grade feedback ── */}
+              {currentQ.type === "essay" && showExplanation && essayGrades[currentIdx] && (() => {
+                const grade = essayGrades[currentIdx];
+                const scoreColor = grade.score >= 70 ? "text-emerald-600" : grade.score >= 40 ? "text-amber-600" : "text-red-500";
+                const scoreBg = grade.score >= 70 ? "bg-emerald-50 border-emerald-200" : grade.score >= 40 ? "bg-amber-50 border-amber-200" : "bg-red-50 border-red-200";
+                return (
+                  <div className={`rounded-xl border ${scoreBg} px-4 py-3 space-y-3`}>
+                    {/* Score */}
+                    <div className="flex items-center justify-between">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-[#537aad]">Score</p>
+                      <span className={`text-[16px] font-bold tabular-nums ${scoreColor}`}>{grade.score}%</span>
+                    </div>
+
+                    {/* Feedback */}
+                    <p className="text-[12px] leading-relaxed text-[#4a5568]">{grade.feedback}</p>
+
+                    {/* Strengths */}
+                    {grade.strengths && grade.strengths.length > 0 && (
+                      <div>
+                        <p className="mb-1 text-[10px] font-semibold text-emerald-700">Strengths</p>
+                        <ul className="space-y-0.5">
+                          {grade.strengths.map((s, i) => (
+                            <li key={i} className="flex items-start gap-1.5 text-[11px] text-[#4a5568]">
+                              <span className="mt-1 h-1 w-1 shrink-0 rounded-full bg-emerald-400" />
+                              {s}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Improvements */}
+                    {grade.improvements && grade.improvements.length > 0 && (
+                      <div>
+                        <p className="mb-1 text-[10px] font-semibold text-amber-700">Areas to improve</p>
+                        <ul className="space-y-0.5">
+                          {grade.improvements.map((s, i) => (
+                            <li key={i} className="flex items-start gap-1.5 text-[11px] text-[#4a5568]">
+                              <span className="mt-1 h-1 w-1 shrink-0 rounded-full bg-amber-400" />
+                              {s}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Sources — prefer question sources (have real IDs) */}
+                    <SourceCitations sources={currentQ.sources && currentQ.sources.length > 0 ? currentQ.sources : grade.sources} />
+                  </div>
+                );
+              })()}
+
+              {/* ── Essay: model answer ── */}
+              {currentQ.type === "essay" && showExplanation && currentQ.modelAnswer && (
+                <div className="rounded-xl bg-[#537aad]/4 border border-[#537aad]/10 px-4 py-3 space-y-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[#537aad]">Model answer</p>
+                  <p className="text-[12px] leading-relaxed text-[#4a5568]">
+                    <LatexText text={currentQ.modelAnswer} />
+                  </p>
+                </div>
+              )}
+
+              {/* MCQ Explanation + Sources */}
+              {currentQ.type !== "essay" && showExplanation && (currentQ.explanation || (currentQ.sources && currentQ.sources.length > 0)) && (
                 <div className="rounded-xl bg-[#537aad]/4 border border-[#537aad]/10 px-4 py-3 space-y-3">
                   {currentQ.explanation && (
                     <div>
@@ -510,20 +657,24 @@ export default function Quiz({
 
         {/* ── Footer actions ── */}
         <div className="shrink-0 border-t border-black/5 px-6 py-4">
-          {state === "active" && !showExplanation && (
-            <button
-              type="button"
-              onClick={handleConfirm}
-              disabled={selectedOption === null}
-              className={`w-full rounded-xl py-2.5 text-[12px] font-semibold transition-all duration-150 ${
-                selectedOption !== null
-                  ? "bg-[#537aad] text-white shadow-sm hover:bg-[#46689a] active:scale-[0.98]"
-                  : "bg-black/4 text-[#7a9bc7] cursor-not-allowed"
-              }`}
-            >
-              Confirm
-            </button>
-          )}
+          {state === "active" && !showExplanation && (() => {
+            const isEssay = currentQ?.type === "essay";
+            const canSubmit = isEssay ? essayText.trim().length > 0 && !essayGrading : selectedOption !== null;
+            return (
+              <button
+                type="button"
+                onClick={handleConfirm}
+                disabled={!canSubmit}
+                className={`w-full rounded-xl py-2.5 text-[12px] font-semibold transition-all duration-150 ${
+                  canSubmit
+                    ? "bg-[#537aad] text-white shadow-sm hover:bg-[#46689a] active:scale-[0.98]"
+                    : "bg-black/4 text-[#7a9bc7] cursor-not-allowed"
+                }`}
+              >
+                {essayGrading ? "Grading..." : isEssay ? "Submit answer" : "Confirm"}
+              </button>
+            );
+          })()}
           {state === "active" && showExplanation && (
             <button
               type="button"
