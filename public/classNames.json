@@ -43,7 +43,7 @@
         {
           "unit_id": "534c8bc63313",
           "unit_name": "Course Overview & Setup",
-          "chunk_count": 7,
+          "chunk_count": 5,
           "topics": [
             {
               "topic_id": "1859340ca601",
@@ -65,13 +65,13 @@
             {
               "topic_id": "6fb80b4cca03",
               "topic_name": "Course Policies",
-              "chunk_count": 3,
+              "chunk_count": 2,
               "subtopics": []
             },
             {
               "topic_id": "8791a7e715fe",
               "topic_name": "VSCode Setup",
-              "chunk_count": 2,
+              "chunk_count": 1,
               "subtopics": [
                 {
                   "subtopic_id": "936945a9c748",
@@ -132,7 +132,7 @@
         {
           "unit_id": "76a49eb45d46",
           "unit_name": "Course Policies and Overview",
-          "chunk_count": 4,
+          "chunk_count": 3,
           "topics": [
             {
               "topic_id": "84e0b44e0e33",
@@ -149,7 +149,7 @@
             {
               "topic_id": "c828f32f565f",
               "topic_name": "VSCode Setup",
-              "chunk_count": 2,
+              "chunk_count": 1,
               "subtopics": [
                 {
                   "subtopic_id": "dd6d705b0345",
@@ -168,12 +168,12 @@
         {
           "unit_id": "8ca180aaa031",
           "unit_name": "Course Overview & Policies",
-          "chunk_count": 5,
+          "chunk_count": 4,
           "topics": [
             {
               "topic_id": "d75f89a9190a",
               "topic_name": "Syllabus Review",
-              "chunk_count": 2,
+              "chunk_count": 1,
               "subtopics": []
             },
             {
@@ -198,7 +198,7 @@
         {
           "unit_id": "944cfde1977e",
           "unit_name": "Course Overview and Setup",
-          "chunk_count": 3,
+          "chunk_count": 2,
           "topics": [
             {
               "topic_id": "24f6e3aae600",
@@ -226,7 +226,7 @@
             {
               "topic_id": "c6eb5b5e6520",
               "topic_name": "Course Policies",
-              "chunk_count": 2,
+              "chunk_count": 1,
               "subtopics": []
             }
           ]
@@ -265,7 +265,7 @@
         {
           "unit_id": "175ccb1f6a4c",
           "unit_name": "C Programming Fundamentals",
-          "chunk_count": 15,
+          "chunk_count": 14,
           "topics": [
             {
               "topic_id": "19f23159dfe1",
@@ -282,7 +282,7 @@
             {
               "topic_id": "7a575495e0ae",
               "topic_name": "Basic Output",
-              "chunk_count": 2,
+              "chunk_count": 1,
               "subtopics": []
             },
             {
@@ -336,7 +336,7 @@
         {
           "unit_id": "5132cc6718fb",
           "unit_name": "C Programming Fundamentals",
-          "chunk_count": 31,
+          "chunk_count": 29,
           "topics": [
             {
               "topic_id": "01117e468de4",
@@ -395,7 +395,7 @@
             {
               "topic_id": "6773daef2081",
               "topic_name": "Basic Output",
-              "chunk_count": 1,
+              "chunk_count": 0,
               "subtopics": []
             },
             {
@@ -454,7 +454,7 @@
             {
               "topic_id": "ddcb370ec520",
               "topic_name": "File Systems",
-              "chunk_count": 2,
+              "chunk_count": 1,
               "subtopics": []
             },
             {
@@ -496,7 +496,7 @@
         {
           "unit_id": "65798e08c2c0",
           "unit_name": "C Programming Fundamentals",
-          "chunk_count": 24,
+          "chunk_count": 23,
           "topics": [
             {
               "topic_id": "07dbfed43ff4",
@@ -588,7 +588,7 @@
             {
               "topic_id": "66f0e3bddb86",
               "topic_name": "Basic Output",
-              "chunk_count": 2,
+              "chunk_count": 1,
               "subtopics": []
             },
             {
@@ -638,7 +638,7 @@
         {
           "unit_id": "6900d5da712c",
           "unit_name": "C Programming Fundamentals",
-          "chunk_count": 12,
+          "chunk_count": 11,
           "topics": [
             {
               "topic_id": "1117c0c9ba50",
@@ -702,7 +702,7 @@
             {
               "topic_id": "77ce991a93c8",
               "topic_name": "Output",
-              "chunk_count": 1,
+              "chunk_count": 0,
               "subtopics": []
             },
             {
@@ -1119,7 +1119,7 @@
         {
           "unit_id": "2eefbb001b79",
           "unit_name": "C Programming",
-          "chunk_count": 7,
+          "chunk_count": 6,
           "topics": [
             {
               "topic_id": "00338adac0c2",
@@ -1136,7 +1136,7 @@
             {
               "topic_id": "529f542cf012",
               "topic_name": "Basic Output",
-              "chunk_count": 2,
+              "chunk_count": 1,
               "subtopics": []
             },
             {
@@ -1243,12 +1243,12 @@
         {
           "unit_id": "43a54df76912",
           "unit_name": "C Language Features",
-          "chunk_count": 13,
+          "chunk_count": 11,
           "topics": [
             {
               "topic_id": "23bd0d96e46a",
               "topic_name": "String I/O",
-              "chunk_count": 2,
+              "chunk_count": 1,
               "subtopics": []
             },
             {
@@ -1266,12 +1266,12 @@
             {
               "topic_id": "6559e48200e7",
               "topic_name": "Debugging in C",
-              "chunk_count": 3,
+              "chunk_count": 2,
               "subtopics": [
                 {
                   "subtopic_id": "a2883a1cf053",
                   "subtopic_name": "gdb",
-                  "chunk_count": 3
+                  "chunk_count": 2
                 }
               ]
             },
@@ -1462,7 +1462,7 @@
         {
           "unit_id": "cc647c280176",
           "unit_name": "C Programming Fundamentals",
-          "chunk_count": 13,
+          "chunk_count": 11,
           "topics": [
             {
               "topic_id": "035b3d70ca34",
@@ -1479,12 +1479,12 @@
             {
               "topic_id": "5ba82b98b57b",
               "topic_name": "Debugging in C",
-              "chunk_count": 3,
+              "chunk_count": 2,
               "subtopics": [
                 {
                   "subtopic_id": "3f28eed707c9",
                   "subtopic_name": "gdb",
-                  "chunk_count": 3
+                  "chunk_count": 2
                 }
               ]
             },
@@ -1532,12 +1532,12 @@
             {
               "topic_id": "b67aa9a25c48",
               "topic_name": "Strings",
-              "chunk_count": 1,
+              "chunk_count": 0,
               "subtopics": [
                 {
                   "subtopic_id": "bf677dae189a",
                   "subtopic_name": "String I/O",
-                  "chunk_count": 1
+                  "chunk_count": 0
                 },
                 {
                   "subtopic_id": "6a30c6b63f1b",
@@ -1714,17 +1714,17 @@
         {
           "unit_id": "d1f87c1a42d4",
           "unit_name": "Debugging",
-          "chunk_count": 5,
+          "chunk_count": 4,
           "topics": [
             {
               "topic_id": "276948c05874",
               "topic_name": "Debugging in C",
-              "chunk_count": 5,
+              "chunk_count": 4,
               "subtopics": [
                 {
                   "subtopic_id": "5e5a563c0660",
                   "subtopic_name": "gdb",
-                  "chunk_count": 4
+                  "chunk_count": 3
                 },
                 {
                   "subtopic_id": "2735a8af7893",
@@ -2021,7 +2021,7 @@
         {
           "unit_id": "68fd8ef4998a",
           "unit_name": "Strings in C",
-          "chunk_count": 2,
+          "chunk_count": 1,
           "topics": [
             {
               "topic_id": "021c18fcde06",
@@ -2032,7 +2032,7 @@
             {
               "topic_id": "1fa3319cdb71",
               "topic_name": "String I/O",
-              "chunk_count": 2,
+              "chunk_count": 1,
               "subtopics": []
             },
             {
@@ -2371,5 +2371,5 @@
   "classNames": [
     "Intro Computer Organization I"
   ],
-  "updatedAt": "2026-02-15T09:55:02.899Z"
+  "updatedAt": "2026-02-15T09:51:30.888Z"
 }
